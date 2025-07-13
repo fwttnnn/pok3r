@@ -1,0 +1,32 @@
+{
+    "name": "Marchand",
+    "tree": {
+        "$className": "DataModel",
+        "$ignoreUnknownInstances": true,
+        "Workspace": {
+            "$path": "src/Workspace.rbxm"
+        },
+        "Lighting": {
+            "$path": "src/Lighting.rbxm"
+        },
+        "ReplicatedStorage": {
+            "$path": "src/ReplicatedStorage"
+        },
+        "ServerScriptService": {
+            "$path": "src/ServerScriptService"
+        },
+        "StarterGui": {
+            "$properties": {
+                "ScreenOrientation": "LandscapeRight"
+            }
+        },
+        "StarterPlayer": {
+            "StarterCharacterScripts": {
+                "$path": "src/StarterPlayer/StarterCharacterScripts"
+            }
+        },
+        "TextChatService": {
+            "$path": "src/TextChatService.rbxm"
+        }
+    }
+}

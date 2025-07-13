@@ -1,0 +1,40 @@
+Marchand
+========
+
+You are a merchant.
+
+Prerequisite
+------------
+
+Required for external Roblox development:
+
+    - aftman <https://github.com/LPGhatguy/aftman>
+    - lune <https://github.com/lune-org/lune>
+    - rojo <https://github.com/rojo-rbx/rojo>
+
+Installation
+------------
+
+You only need to do this only once:
+
+    aftman install
+
+Building
+--------
+
+Build and save rbxl place:
+
+    rojo build -o Risperidone.rbxl
+
+Synchronize
+-----------
+
+To get the latest Workspace (map):
+
+    lune run sync.luau
+
+Spawn a rojo server:
+
+    rojo serve
+
+Then connect to the server from Roblox Studio <https://rojo.space/docs/v7/getting-started/installation/#installing-the-plugin>.
