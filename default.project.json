@@ -4,16 +4,20 @@
         "$className": "DataModel",
         "$ignoreUnknownInstances": true,
         "Workspace": {
-            "$path": "src/Workspace.rbxm"
+            "$path": "src/Workspace.rbxm",
+            "$ignoreUnknownInstances": true
         },
         "Lighting": {
-            "$path": "src/Lighting.rbxm"
+            "$path": "src/Lighting.rbxm",
+            "$ignoreUnknownInstances": true
         },
         "ReplicatedStorage": {
-            "$path": "src/ReplicatedStorage"
+            "$path": "src/ReplicatedStorage",
+            "$ignoreUnknownInstances": true
         },
         "ServerScriptService": {
-            "$path": "src/ServerScriptService"
+            "$path": "src/ServerScriptService",
+            "$ignoreUnknownInstances": true
         },
         "StarterGui": {
             "$properties": {
@@ -22,11 +26,13 @@
         },
         "StarterPlayer": {
             "StarterCharacterScripts": {
-                "$path": "src/StarterPlayer/StarterCharacterScripts"
+                "$path": "src/StarterPlayer/StarterCharacterScripts",
+                "$ignoreUnknownInstances": true
             }
         },
         "TextChatService": {
-            "$path": "src/TextChatService.rbxm"
+            "$path": "src/TextChatService.rbxm",
+            "$ignoreUnknownInstances": true
         }
     }
 }

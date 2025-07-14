@@ -1,4 +1,5 @@
 -- NOTE: placeholder as an example, this is my previous work and hass nothing to do with Marchand.
+return {}
 
 local character: Character = script.Parent
 local camera: Camera = game.workspace.CurrentCamera
