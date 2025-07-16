@@ -1,5 +1,7 @@
 -- A radio that plays through all players.
 
+-- burn 90935264615216
+
 soundIds = {9119383684}
 cursor = 1
 

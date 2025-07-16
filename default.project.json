@@ -20,6 +20,8 @@
             "$ignoreUnknownInstances": true
         },
         "StarterGui": {
+            "$path": "src/StarterGui",
+            "$ignoreUnknownInstances": true,
             "$properties": {
                 "ScreenOrientation": "LandscapeRight"
             }
