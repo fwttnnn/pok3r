@@ -2,7 +2,7 @@ local Card = {}
 Card.__index = Card
 
 function Card.new()
-    local template: Part = workspace:WaitForChild("CARDEXAMPLE")
+    local template: Part = workspace:WaitForChild("Board").CARDEXAMPLE
     local part: Part = template:Clone()
 
     part.Name = "Card"

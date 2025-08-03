@@ -2,7 +2,7 @@ local Deck = {}
 Deck.__index = Deck
 
 function Deck.new()
-    local template: Part = workspace:WaitForChild("DECKEXAMPLE")
+    local template: Part = workspace:WaitForChild("Board").DECKEXAMPLE
     local part: Part = template:Clone()
     local clickDetector: ClickDetector = Instance.new("ClickDetector", part)
 
@@ -12,54 +12,43 @@ function Deck.new()
     part.CanQuery = true
     part.Parent = workspace
 
-    local deck = setmetatable({
+    return setmetatable({
         Part = part,
         Cards = {},
         MAXSIZE = 40
     }, Deck)
-
-    clickDetector.MouseClick:Connect(function()
-        local card = deck:pop()
-        card.Part:Destroy()
-
-        workspace.Invisible.Sound:Play()
-
-        deck:Resize()
-    end)
-
-    return deck
 end
 
 function Deck:setTransparency(transparency: number)
     self.Part.Transparency = transparency
 end
 
-function Deck:isFull(): boolean
+function Deck:IsFull(): boolean
     return #self.Cards >= self.MAXSIZE
 end
 
-function Deck:isEmpty(): boolean
+function Deck:IsEmpty(): boolean
     return #self.Cards <= 0
 end
 
 function Deck:Resize()
-    if self:isEmpty() then
+    if self:IsEmpty() then
         self.Part.Size = Vector3.new(0, 0, 0)
         return
     end
 
-    self.Part.Size = Vector3.new(self.Part.Size.X, (#self.Cards * self:top().Part.Size.Y), self.Part.Size.Z)
+    self.Part.Size = Vector3.new(self.Part.Size.X, (#self.Cards * self:Top().Part.Size.Y), self.Part.Size.Z)
     -- TODO: not actually on center, calculate the center from the top and bottom pos instead.
     self.Part.Position = self.Cards[math.floor(#self.Cards / 2 + 1)].Part.Position
 end
 
-function Deck:push(card: Card)
-    if self:isFull() then
+function Deck:Push(card: Card)
+    if self:IsFull() then
         error("Deck is full.")
     end
 
-    if not self:isEmpty() then
-        local topCard: Card = self:top()
+    if not self:IsEmpty() then
+        local topCard: Card = self:Top()
         card.Part.CFrame = topCard.Part.CFrame + Vector3.new(0, topCard.Part.Size.Y, 0)
     end
 
@@ -68,24 +57,50 @@ function Deck:push(card: Card)
     card.Part.face.Transparency = 1
 
     table.insert(self.Cards, card)
-
-    self:Resize()
 end
 
-function Deck:top(): Card
-    if self:isEmpty() then
+function Deck:Top(): Card
+    if self:IsEmpty() then
         error("Deck is empty.")
     end
 
     return self.Cards[#self.Cards]
 end
 
-function Deck:pop(): Card
-    if self:isEmpty() then
+function Deck:Pop(): Card
+    if self:IsEmpty() then
         error("Deck is empty.")
     end
 
     return table.remove(self.Cards)
+end
+
+function Deck:Deal(player: Player, cardInHandPosition: Vector3, __NPLAYERHAND: number)
+    local _Board = workspace:WaitForChild("Board").Board
+    local direction: Vector3 = (cardInHandPosition - _Board.Position).Unit
+    direction = Vector3.new((direction.X >= 0 and 1 or -1), 0, (direction.Z >= 0 and 1 or -1))
+
+    local card = self:Pop()
+    card.Part.face.Transparency = 0
+
+    local TweenService = game:GetService("TweenService")
+    local tweenInfo = TweenInfo.new(
+        1, -- Time
+        Enum.EasingStyle.Quad, -- EasingStyle
+        Enum.EasingDirection.Out -- EasingDirection
+    )
+
+    local cardSpacing = card.Part.Size.X * 0.4
+    local offset = direction * -(__NPLAYERHAND * cardSpacing)
+    local targetPosition = cardInHandPosition + offset
+
+    local tween = TweenService:Create(card.Part, tweenInfo, {
+        Position = targetPosition,
+        Orientation = Vector3.new(0, math.random(0, 120), 0)
+    })
+    tween:Play()
+
+    workspace.Invisible.Sound:Play()
 end
 
 return Deck
