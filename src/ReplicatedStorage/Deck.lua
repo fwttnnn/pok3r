@@ -67,6 +67,14 @@ function Deck:Top(): Card
     return self.Cards[#self.Cards]
 end
 
+function Deck:Bottom(): Card
+    if self:IsEmpty() then
+        error("Deck is empty.")
+    end
+
+    return self.Cards[1]
+end
+
 function Deck:Pop(): Card
     if self:IsEmpty() then
         error("Deck is empty.")
@@ -78,10 +86,12 @@ end
 function Deck:Deal(player: Player, cardInHandPosition: Vector3, __NPLAYERHAND: number)
     local _Board = workspace:WaitForChild("Board").Board
     local direction: Vector3 = (cardInHandPosition - _Board.Position).Unit
-    direction = Vector3.new((direction.X >= 0 and 1 or -1), 0, (direction.Z >= 0 and 1 or -1))
+    direction = Vector3.new(direction.X, 0, direction.Z)
+    -- direction = Vector3.new((direction.X >= 0 and 1 or -1), 0, (direction.Z >= 0 and 1 or -1))
 
     local card = self:Pop()
-    card.Part.face.Transparency = 0
+    -- card.Part.face.Transparency = 0
+    card.Part.Position = self:Bottom().Part.Position
 
     local TweenService = game:GetService("TweenService")
     local tweenInfo = TweenInfo.new(
@@ -96,7 +106,8 @@ function Deck:Deal(player: Player, cardInHandPosition: Vector3, __NPLAYERHAND: n
 
     local tween = TweenService:Create(card.Part, tweenInfo, {
         Position = targetPosition,
-        Orientation = Vector3.new(0, math.random(0, 120), 0)
+        Orientation = card.Part.Orientation + Vector3.new(0, math.random(60, 120), 0)
+        -- Orientation = Vector3.new(0, math.random(0, 120), 0)
     })
     tween:Play()
 
