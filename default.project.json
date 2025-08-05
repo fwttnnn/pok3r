@@ -4,8 +4,7 @@
         "$className": "DataModel",
         "$ignoreUnknownInstances": true,
         "Workspace": {
-            "$path": "src/Workspace.rbxm",
-            "$ignoreUnknownInstances": true
+            "$path": "src/Workspace.rbxm"
         },
         "Lighting": {
             "$path": "src/Lighting.rbxm",
@@ -19,6 +18,10 @@
             "$path": "src/ServerScriptService",
             "$ignoreUnknownInstances": true
         },
+        "ServerStorage": {
+            "$path": "src/ServerStorage",
+            "$ignoreUnknownInstances": true
+        },
         "StarterGui": {
             "$path": "src/StarterGui",
             "$ignoreUnknownInstances": true,
@@ -29,6 +32,10 @@
         "StarterPlayer": {
             "StarterCharacterScripts": {
                 "$path": "src/StarterPlayer/StarterCharacterScripts",
+                "$ignoreUnknownInstances": true
+            },
+            "StarterPlayerScripts": {
+                "$path": "src/StarterPlayer/StarterPlayerScripts",
                 "$ignoreUnknownInstances": true
             }
         },
