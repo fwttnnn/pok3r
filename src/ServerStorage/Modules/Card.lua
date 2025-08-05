@@ -1,21 +1,39 @@
+--!strict
 local Card = {}
 Card.__index = Card
 
-function Card.new()
-    local template: Part = workspace:WaitForChild("Board").CARDEXAMPLE
-    local part: Part = template:Clone()
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Objects = ReplicatedStorage:WaitForChild("Objects")
+local Cards = Objects.Cards
 
+local Suit = {
+    Spades   = true,
+    Hearts   = true,
+    Diamonds = true,
+    Clubs    = true
+}
+
+local Rank = { J = true, Q = true, K = true, A = true }
+for i = 2, 10 do
+	Rank[tostring(i)] = true
+end
+
+function Card.new(rank: Rank, suit: Suit)
+    assert(Rank[rank])
+    assert(Suit[suit])
+
+    local template: Part = workspace:WaitForChild("Board").CARDEXAMPLE
+    local part: Part = Cards[suit][rank]:Clone()
+
+    part.CFrame = template.CFrame
+    part.Parent = nil
     part.Name = "Card"
 
     return setmetatable({
-        Part = part
+        Part = part,
+        Rank = rank,
+        Suit = suit,
     }, Card)
-end
-
-function Card:setTransparency(transparency: number)
-    self.Part.Transparency = transparency
-    self.Part.Decal.Transparency = transparency
-    self.Part.face.Transparency = transparency
 end
 
 return Card

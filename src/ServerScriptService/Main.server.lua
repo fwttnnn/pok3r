@@ -1,25 +1,32 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+--!strict
+local ServerStorage = game:GetService("ServerStorage")
+local Modules = ServerStorage:WaitForChild("Modules")
+local Managers = ServerStorage:WaitForChild("Managers")
 
+local Session = require(Modules.Session)
+local SessionManager = require(Managers.Session)
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local EquipEvent = ReplicatedStorage.Events.Card:FindFirstChild("Equip")
 local UnequipEvent = ReplicatedStorage.Events.Card:FindFirstChild("Unequip")
 
-local CARDTEST: Part = workspace:WaitForChild("CARDTEST")
-
-function buildCards(handle, totalCards, radius, cardSpacing)
+function buildCards(handle: Part, cards: {[number]: Card}, cardSpacing: number)
     local center = handle.Position
 
-    local arcLength = cardSpacing * (totalCards - 1)
+    local radius = 1
+    local arcLength = cardSpacing * (#cards - 1)
     local arcRadians = arcLength / radius
     local arcDegrees = math.deg(arcRadians)
 
-    for i = 1, totalCards do
-        local angleDeg = arcDegrees / 2 - (i - 1) * (arcDegrees / math.max(totalCards - 1, 1))
+    for i, _card in ipairs(cards) do
+        local angleDeg = arcDegrees / 2 - (i - 1) * (arcDegrees / math.max(#cards - 1, 1))
         local angleRad = math.rad(angleDeg)
 
-        local card = CARDTEST:Clone()
+        local card = _card.Part:Clone()
         card.Anchored = false
         card.CanCollide = false
         card.Massless = true
+        card.Face.Transparency = 0
         card.Parent = handle
 
         local offset = Vector3.new(
@@ -53,7 +60,9 @@ EquipEvent.OnServerEvent:Connect(function(player: Player)
     handle.Transparency = 1
     Instance.new("Highlight", handle)
 
-    buildCards(handle, math.random(2, 2), 1, 0.19)
+    local session = SessionManager.FindPlayerSession(player)
+    local _player = session:GetPlayer(player)
+    buildCards(handle, _player.Hand, 0.19)
 
     local rightArmMotor6D = Instance.new("Motor6D")
     rightArmMotor6D.Name = "Right Arm Motor6D"
@@ -71,7 +80,6 @@ EquipEvent.OnServerEvent:Connect(function(player: Player)
         )
 end)
 
-
 UnequipEvent.OnServerEvent:Connect(function(player: Player)
     local character = player.Character or player.CharacterAdded:Wait()
     local rightArm = character:FindFirstChild("Right Arm")
@@ -79,3 +87,20 @@ UnequipEvent.OnServerEvent:Connect(function(player: Player)
     rightArm:FindFirstChild("Handle"):Destroy()
     rightArm:FindFirstChild("Right Arm Motor6D"):Destroy()
 end)
+
+wait(1) 
+
+local Players = game:GetService("Players")
+local allPlayers = {}
+
+for _, player in pairs(Players:GetPlayers()) do
+    table.insert(allPlayers, player)
+end
+
+local me = allPlayers[1]
+
+table.insert(SessionManager, Session.new({me, {UserId = 666}}))
+local session = SessionManager.FindPlayerSession(me)
+
+session:Deal(me)
+session:Deal(me)

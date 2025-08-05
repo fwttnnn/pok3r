@@ -1,3 +1,4 @@
+--!strict
 local Board = {}
 Board.__index = Board
 

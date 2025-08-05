@@ -1,3 +1,4 @@
+--!strict
 local Deck = {}
 Deck.__index = Deck
 
@@ -6,7 +7,7 @@ function Deck.new()
     local part: Part = template:Clone()
     local clickDetector: ClickDetector = Instance.new("ClickDetector", part)
 
-    Instance.new("Highlight", part)
+    -- Instance.new("Highlight", part)
 
     part.Name = "Deck"
     part.CanQuery = true
@@ -15,12 +16,8 @@ function Deck.new()
     return setmetatable({
         Part = part,
         Cards = {},
-        MAXSIZE = 40
+        MAXSIZE = 52
     }, Deck)
-end
-
-function Deck:setTransparency(transparency: number)
-    self.Part.Transparency = transparency
 end
 
 function Deck:IsFull(): boolean
@@ -42,6 +39,13 @@ function Deck:Resize()
     self.Part.Position = self.Cards[math.floor(#self.Cards / 2 + 1)].Part.Position
 end
 
+function Deck:Shuffle()
+    for i = #self.Cards, 2, -1 do
+        local j = math.random(1, i)
+        self.Cards[i], self.Cards[j] = self.Cards[j], self.Cards[i]
+    end
+end
+
 function Deck:Push(card: Card)
     if self:IsFull() then
         error("Deck is full.")
@@ -53,8 +57,9 @@ function Deck:Push(card: Card)
     end
 
     card.Part.Parent = self.Part
-    card:setTransparency(0)
-    card.Part.face.Transparency = 1
+    card.Part.Transparency = 0
+    card.Part.Decal.Transparency = 0
+    card.Part.Face.Transparency = 1
 
     table.insert(self.Cards, card)
 end
@@ -90,7 +95,7 @@ function Deck:Deal(player: Player, cardInHandPosition: Vector3, __NPLAYERHAND: n
     -- direction = Vector3.new((direction.X >= 0 and 1 or -1), 0, (direction.Z >= 0 and 1 or -1))
 
     local card = self:Pop()
-    -- card.Part.face.Transparency = 0
+    -- card.Part.Face.Transparency = 0
     card.Part.Position = self:Bottom().Part.Position
 
     local TweenService = game:GetService("TweenService")
