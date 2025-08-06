@@ -62,7 +62,7 @@ EquipEvent.OnServerEvent:Connect(function(player: Player)
 
     local session = SessionManager.FindPlayerSession(player)
     local _player = session:GetPlayer(player)
-    buildCards(handle, _player.Hand, 0.19)
+    buildCards(handle, _player.Hand.Cards, 0.19)
 
     local rightArmMotor6D = Instance.new("Motor6D")
     rightArmMotor6D.Name = "Right Arm Motor6D"
@@ -104,3 +104,10 @@ local session = SessionManager.FindPlayerSession(me)
 
 session:Deal(me)
 session:Deal(me)
+session:Deal(me)
+session:Deal(me)
+session:Deal(me)
+
+local _player = session:GetPlayer(me)
+_player.Hand:Sort()
+print(_player.Hand:Rank())

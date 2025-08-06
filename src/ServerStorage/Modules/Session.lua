@@ -7,6 +7,7 @@ local Modules = ServerStorage:WaitForChild("Modules")
 
 local Deck = require(Modules.Deck)
 local Card = require(Modules.Card)
+local Hand = require(Modules.Hand)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Objects = ReplicatedStorage:WaitForChild("Objects")
@@ -14,11 +15,11 @@ local Objects = ReplicatedStorage:WaitForChild("Objects")
 local Cards = Objects.Cards
 
 function Session.new(players: {[number]: Player})
-    local _players: {[number]: {Player: Player, Hand: {[number]: Card}}} = {}
+    local _players: {[number]: {Player: Player, Hand: Hand}} = {}
     for _, player in ipairs(players) do
         _players[player.UserId] = {
             Player = player,
-            Hand = {},
+            Hand = Hand.new(), 
         }
     end
 
@@ -48,7 +49,7 @@ function Session:Deal(player: Player)
     if not self:IsPlayerInSession(player) then return end
 
     local _player = self.Players[player.UserId]
-    table.insert(_player.Hand, self.Deck:Pop())
+    _player.Hand:Push(self.Deck:Pop())
 end
 
 return Session
