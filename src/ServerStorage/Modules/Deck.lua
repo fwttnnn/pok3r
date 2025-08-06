@@ -16,12 +16,7 @@ function Deck.new()
     return setmetatable({
         Part = part,
         Cards = {},
-        MAXSIZE = 52
     }, Deck)
-end
-
-function Deck:IsFull(): boolean
-    return #self.Cards >= self.MAXSIZE
 end
 
 function Deck:IsEmpty(): boolean
@@ -47,10 +42,6 @@ function Deck:Shuffle()
 end
 
 function Deck:Push(card: Card)
-    if self:IsFull() then
-        error("Deck is full.")
-    end
-
     if not self:IsEmpty() then
         local topCard: Card = self:Top()
         card.Part.CFrame = topCard.Part.CFrame + Vector3.new(0, topCard.Part.Size.Y, 0)

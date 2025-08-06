@@ -4,22 +4,28 @@ local character = script.Parent
 local humanoid = character:WaitForChild("Humanoid")
 local animator = humanoid:WaitForChild("Animator")
 
-local equipAnimation = animator:LoadAnimation(ReplicatedStorage.Animations.Card:FindFirstChild("Equip"))
+local equipAnimation = animator:LoadAnimation(ReplicatedStorage.Animations.Hand:FindFirstChild("Equip"))
 
 local player = game.Players.LocalPlayer
 local cardGUI = player.PlayerGui.ScreenGui.ViewportFrame
 cardGUI.Visible = false
 
-local EquipEvent = ReplicatedStorage.Events.Card:FindFirstChild("Equip")
-local UnequipEvent = ReplicatedStorage.Events.Card:FindFirstChild("Unequip")
+local EquipFunction = ReplicatedStorage.Functions.Hand:FindFirstChild("Equip")
+local UnequipFunction = ReplicatedStorage.Functions.Hand:FindFirstChild("Unequip")
+
+local Objects = ReplicatedStorage:WaitForChild("Objects")
+local Cards = Objects.Cards.Poker
 
 character.ChildAdded:Connect(function(child)
     if not child:IsA("Tool") then return end
 
     equipAnimation:Play()
+    local cards = EquipFunction:InvokeServer()
+    local rightArm = character:FindFirstChild("Right Arm")
 
-    local tool: Tool = child
-    EquipEvent:FireServer()
+    for i, card in ipairs(cards) do
+        rightArm.Handle[i].Face.Texture = Cards[card.Suit][card.Rank].Face.Texture
+    end
 
     cardGUI.Visible = true
 end)
@@ -28,9 +34,7 @@ character.ChildRemoved:Connect(function(child)
     if not child:IsA("Tool") then return end
 
     equipAnimation:Stop()
-
-    local tool: Tool = child
-    UnequipEvent:FireServer()
+    UnequipFunction:InvokeServer()
 
     cardGUI.Visible = false
 end)

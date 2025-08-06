@@ -33,11 +33,10 @@ function Card.new(rank: Rank, suit: Suit, ace: number?)
     -- TODO: CURRENTLY, HAND CAN COPY ITSELF, WHICH CLONES A NEW CARD PART.
     -- INSTEAD, IT SHOULDN'T CLONE A NEW CARD PART.
     local template: Part = workspace:WaitForChild("Board").CARDEXAMPLE
-    local part: Part = Cards[suit][rank]:Clone()
+    local part: Part = Cards.Blank:Clone()
 
     part.CFrame = template.CFrame
     part.Parent = nil
-    part.Name = "Card"
 
     return setmetatable({
         Part = part,

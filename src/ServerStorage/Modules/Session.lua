@@ -11,8 +11,7 @@ local Hand = require(Modules.Hand)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Objects = ReplicatedStorage:WaitForChild("Objects")
-
-local Cards = Objects.Cards
+local Cards = Objects.Cards.Poker
 
 function Session.new(players: {[number]: Player})
     local _players: {[number]: {Player: Player, Hand: Hand}} = {}
