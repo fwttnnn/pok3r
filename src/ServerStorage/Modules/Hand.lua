@@ -2,9 +2,11 @@
 local Hand = {}
 Hand.__index = Hand
 
-function Hand.new()
+function Hand.new(cards: Cards?)
+    cards = cards or {}
+
     return setmetatable({
-        Cards = {}
+        Cards = cards
     }, Hand)
 end
 
@@ -35,9 +37,23 @@ function Hand:Copy(): Hand
 end
 
 function Hand:Sort()
+    self:SortByRank()
+end
+
+function Hand:SortByRank()
     table.sort(self.Cards, function(a, b)
         -- NOTE: descending (high to low)
         return a:RankAsNumeric() > b:RankAsNumeric()
+    end)
+end
+
+function Hand:SortBySuit()
+    table.sort(self.Cards, function(a, b)
+        if a.Suit == b.Suit then
+            return a:RankAsNumeric() > b:RankAsNumeric()
+        end
+
+        return a.Suit < b.Suit
     end)
 end
 
@@ -156,34 +172,107 @@ function Hand:_RankedHighCard(): boolean
     return false
 end
 
+function _slice(tbl, start, stop)
+    assert(start <= stop and stop <= #tbl)
+    local sliced = {}
+
+    for i = start, stop do
+        table.insert(sliced, tbl[i])
+    end
+
+    return sliced
+end
+
+function _combinations(tbl, n)
+    assert(n >= 0 and n <= #tbl)
+    local combinations = {}
+
+    for i = 1, #tbl do
+        if (i - 1) + n > #tbl then
+            break
+        end
+
+        table.insert(combinations, _slice(tbl, i, (i - 1) + n))
+    end
+
+    return combinations
+end
+
+function Hand:Highest(cards: {Card}): {Card}
+    local hand = self:Copy()
+    for _, card in ipairs(cards) do
+        hand:Push(card)
+    end
+
+    local handAces14SortedByRank = hand:Copy()
+    local handAces14SortedBySuit = hand:Copy()
+    local handAces1SortedByRank  = hand:Copy()
+    local handAces1SortedBySuit  = hand:Copy()
+
+    handAces14SortedByRank:ChangeAces(14)
+    handAces14SortedBySuit:ChangeAces(14)
+    handAces1SortedByRank:ChangeAces(1)
+    handAces1SortedBySuit:ChangeAces(1)
+
+    handAces14SortedByRank:SortByRank()
+    handAces14SortedBySuit:SortBySuit()
+    handAces1SortedByRank:SortByRank()
+    handAces1SortedBySuit:SortBySuit()
+
+    local function bestHand(combinations)
+        local best = { hand = nil, score = 0 }
+
+        for _, cards in ipairs(combinations) do
+            -- TODO: THIS SUCKS, I ONLY NEED :RANK()
+            -- BUT, I HAVE TO CREATE A WHOLE NEW OBJECT.
+            local hand = Hand.new(cards)
+            local score = hand:Rank()
+
+            if score > best.score then
+                best.hand = hand
+                best.score = score
+            end
+        end
+
+        return best
+    end
+
+    local handAces14SortedByRankBest = bestHand(_combinations(handAces14SortedByRank.Cards, 5))
+    local handAces14SortedBySuitBest = bestHand(_combinations(handAces14SortedBySuit.Cards, 5))
+    local handAces1SortedByRankBest  = bestHand(_combinations(handAces1SortedByRank.Cards, 5))
+    local handAces1SortedBySuitBest  = bestHand(_combinations(handAces1SortedBySuit.Cards, 5))
+
+    local best = handAces14SortedByRankBest
+
+    for _, candidate in ipairs({
+        handAces14SortedByRankBest,
+        handAces14SortedBySuitBest,
+        handAces1SortedByRankBest,
+        handAces1SortedBySuitBest,
+    }) do
+        if candidate.score > best.score then
+            best = candidate
+        end
+    end
+
+    return best.hand.Cards
+end
+
 function Hand:Rank(): number
     -- TODO: RETURN THE VALUE OF RANKED HAND (FROM _RANKED* FN), IN CASE A PLAYER HAVE THE SAME RANK.
     -- NOTE: must be sorted, and hand size must be 5.
     assert(#self.Cards == 5, "Hand must have exactly 5 cards")
 
-    local handAces1  = self:Copy()
-    local handAces14 = self:Copy()
-
-    handAces1:ChangeAces(1)
-    handAces14:ChangeAces(14)
-
-    handAces1:Sort()
-    handAces14:Sort()
-
-    if handAces14:_RankedRoyalFlush()    then return 10 end
-    if handAces14:_RankedStraightFlush() then return 9 end
-    if handAces1:_RankedStraightFlush()  then self:ChangeAces(1); self:Sort(); return 9 end
-    if handAces14:_RankedFourOfAKind()   then return 8 end
-    if handAces14:_RankedFullHouse()     then return 7 end
-    if handAces14:_RankedFlush()         then return 6 end
-    if handAces14:_RankedStraight()      then return 5 end
-    if handAces1:_RankedStraight()       then self:ChangeAces(1); self:Sort(); return 5 end
-    if handAces14:_RankedThreeOfAKind()  then return 4 end
-    if handAces14:_RankedTwoPair()       then return 3 end
-    if handAces14:_RankedOnePair()       then return 2 end
-
-    -- NOTE: ranked high card
-    return 1
+    if self:_RankedRoyalFlush()    then return 10 end
+    if self:_RankedStraightFlush() then return 9 end
+    if self:_RankedFourOfAKind()   then return 8 end
+    if self:_RankedFullHouse()     then return 7 end
+    if self:_RankedFlush()         then return 6 end
+    if self:_RankedStraight()      then return 5 end
+    if self:_RankedThreeOfAKind()  then return 4 end
+    if self:_RankedTwoPair()       then return 3 end
+    if self:_RankedOnePair()       then return 2 end
+    return 1 -- NOTE: ranked high card
 end
 
 return Hand

@@ -14,12 +14,14 @@
 
 -- local deck = Deck.new()
 
--- for i = 1, deck.MAXSIZE do
---     deck:Push(Card.new())
+-- for i = 1, 10 do
+--     deck:Push(Card.new("A", "Hearts"))
 -- end
 
 -- local CARDLINE1 = workspace:WaitForChild("Board").CARDLINE1
 -- local CARDLINE2 = workspace:WaitForChild("Board").CARDLINE2
+
+-- task.wait(4)
 
 -- task.wait(1.2)
 -- deck:Deal(nil, CARDLINE1.Position, 0)
