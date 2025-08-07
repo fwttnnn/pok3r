@@ -1,7 +1,7 @@
-Marchand
-========
+Feeling Lucky?
+==============
 
-You are a merchant.
+You are a gambler.
 
 Prerequisite
 ------------
@@ -24,7 +24,7 @@ Building
 
 Build and save rbxl place:
 
-    rojo build -o Marchand.rbxl
+    rojo build -o fl.rbxl
 
 Synchronize
 -----------
