@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 
 local Modules = ServerStorage:WaitForChild("Modules")
 local Card = require(Modules.Card)
+local Pile = require(Modules.Pile)
 local Table = require(Modules.Table)
 
 local Managers = ServerStorage:WaitForChild("Managers")
@@ -13,34 +14,15 @@ Players.PlayerAdded:Connect(function(player)
     local _table = Table.new({player, {UserId = 69}})
     TableManager.Add(_table)
 
+    _table.Cards.Community:Push(Card.new("5", "Diamonds"))
+    _table.Cards.Community:Push(Card.new("6", "Clubs"))
+    _table.Cards.Community:Push(Card.new("6", "Spades"))
+    _table.Cards.Community:Push(Card.new("2", "Diamonds"))
+    _table.Cards.Community:Push(Card.new("A", "Clubs"))
+
     local _player = _table:Player(player)
+    _player.Hand:Push(Card.new("5", "Spades"))
+    _player.Hand:Push(Card.new("5", "Clubs"))
 
-    -- _player.Hand:Push(Card.new("A", "Spades"))
-    -- _player.Hand:Push(Card.new("K", "Diamonds"))
-    -- _player.Hand.Cards = _player.Hand:Highest({Card.new("Q", "Clubs"),
-    --                                            Card.new("J", "Hearts"),
-    --                                            Card.new("10", "Spades"),
-    --                                            Card.new("2", "Diamonds"),
-    --                                            Card.new("3", "Clubs")})
-
-    -- _player.Hand:Push(Card.new("A", "Spades"))
-    -- _player.Hand:Push(Card.new("K", "Spades"))
-    -- _player.Hand.Cards = _player.Hand:Highest({Card.new("Q", "Spades"),
-    --                                            Card.new("J", "Spades"),
-    --                                            Card.new("10", "Spades"),
-    --                                            Card.new("2", "Diamonds"),
-    --                                            Card.new("3", "Clubs")})
-
-    -- _player.Hand:Push(Card.new("9", "Spades"))
-    -- _player.Hand:Push(Card.new("A", "Diamonds"))
-    -- _player.Hand.Cards = _player.Hand:Highest({Card.new("7", "Spades"),
-    --                                            Card.new("6", "Spades"),
-    --                                            Card.new("5", "Spades"),
-    --                                            Card.new("8", "Spades"),
-    --                                            Card.new("K", "Diamonds")})
-
-    _player.Hand:Push(Card.new("A", "Spades"))
-    _player.Hand:Push(Card.new("K", "Diamonds"))
-
-    -- print(_player.Hand:Rank())
+    print(Pile.new(_player.Hand:Highest(_table.Cards.Community.Cards)):Rank())
 end)
