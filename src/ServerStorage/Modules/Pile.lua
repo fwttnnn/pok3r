@@ -1,24 +1,24 @@
 --!strict
-local Hand = {}
-Hand.__index = Hand
+local Pile = {}
+Pile.__index = Pile
 
-function Hand.new(cards: Cards?)
+function Pile.new(cards: Cards?)
     cards = cards or {}
 
     return setmetatable({
         Cards = cards
-    }, Hand)
+    }, Pile)
 end
 
-function Hand:Push(card: Card)
+function Pile:Push(card: Card)
     table.insert(self.Cards, card)
 end
 
-function Hand:Pop(): Card
+function Pile:Pop(): Card
     return table.remove(self.Cards)
 end
 
-function Hand:ChangeAces(ace: number)
+function Pile:ChangeAces(ace: number)
     assert(ace == 1 or ace == 14)
 
 	for _, card in ipairs(self.Cards) do
@@ -26,28 +26,28 @@ function Hand:ChangeAces(ace: number)
 	end
 end
 
-function Hand:Copy(): Hand
-    local hand = Hand.new()
+function Pile:Copy(): Pile
+    local pile = Pile.new()
 
 	for _, card in ipairs(self.Cards) do
-        hand:Push(card:Copy())
+        pile:Push(card:Copy())
 	end
 
-	return hand
+	return pile
 end
 
-function Hand:Sort()
+function Pile:Sort()
     self:SortByRank()
 end
 
-function Hand:SortByRank()
+function Pile:SortByRank()
     table.sort(self.Cards, function(a, b)
         -- NOTE: descending (high to low)
         return a:RankAsNumeric() > b:RankAsNumeric()
     end)
 end
 
-function Hand:SortBySuit()
+function Pile:SortBySuit()
     table.sort(self.Cards, function(a, b)
         if a.Suit == b.Suit then
             return a:RankAsNumeric() > b:RankAsNumeric()
@@ -57,7 +57,7 @@ function Hand:SortBySuit()
     end)
 end
 
-function Hand:__RankedNOfAKind(n: number): boolean
+function Pile:__RankedNOfAKind(n: number): boolean
     local counts = {}
     for _, card in ipairs(self.Cards) do
         counts[card.Rank] = (counts[card.Rank] or 0) + 1
@@ -72,7 +72,7 @@ function Hand:__RankedNOfAKind(n: number): boolean
     return false
 end
 
-function Hand:_RankedRoyalFlush(): boolean
+function Pile:_RankedRoyalFlush(): boolean
     if self.Cards[1].Rank ~= "A" or self.Cards[2].Rank ~= "K" then
         return false
     end
@@ -80,15 +80,15 @@ function Hand:_RankedRoyalFlush(): boolean
     return self:_RankedStraight() and self:_RankedFlush()
 end
 
-function Hand:_RankedStraightFlush(): boolean
+function Pile:_RankedStraightFlush(): boolean
     return self:_RankedStraight() and self:_RankedFlush()
 end
 
-function Hand:_RankedFourOfAKind(): boolean
+function Pile:_RankedFourOfAKind(): boolean
     return self:__RankedNOfAKind(4)
 end
 
-function Hand:_RankedFullHouse(): boolean
+function Pile:_RankedFullHouse(): boolean
     local counts = {}
     for _, card in ipairs(self.Cards) do
         counts[card.Rank] = (counts[card.Rank] or 0) + 1
@@ -107,7 +107,7 @@ function Hand:_RankedFullHouse(): boolean
     return hasThreeOfAKind and hasOnePair
 end
 
-function Hand:_RankedFlush(): boolean
+function Pile:_RankedFlush(): boolean
     local suit: string = self.Cards[1].Suit
 
     for _, card in ipairs(self.Cards) do
@@ -119,7 +119,7 @@ function Hand:_RankedFlush(): boolean
     return true
 end
 
-function Hand:_RankedStraight(): boolean
+function Pile:_RankedStraight(): boolean
     -- Not enough cards to form a straight
     if #self.Cards < 2 then
         return false
@@ -142,11 +142,11 @@ function Hand:_RankedStraight(): boolean
     return true
 end
 
-function Hand:_RankedThreeOfAKind(): boolean
+function Pile:_RankedThreeOfAKind(): boolean
     return self:__RankedNOfAKind(3)
 end
 
-function Hand:_RankedTwoPair(): boolean
+function Pile:_RankedTwoPair(): boolean
     local counts = {}
     for _, card in ipairs(self.Cards) do
         counts[card.Rank] = (counts[card.Rank] or 0) + 1
@@ -162,11 +162,11 @@ function Hand:_RankedTwoPair(): boolean
     return pairCount == 2
 end
 
-function Hand:_RankedOnePair(): boolean
+function Pile:_RankedOnePair(): boolean
     return self:__RankedNOfAKind(2)
 end
 
-function Hand:_RankedHighCard(): boolean
+function Pile:_RankedHighCard(): boolean
     -- WARNING: this function is not gonna be used.
     assert(false)
     return false
@@ -198,38 +198,40 @@ function _combinations(tbl, n)
     return combinations
 end
 
-function Hand:Highest(cards: {Card}): {Card}
-    local hand = self:Copy()
+function Pile:Highest(cards: {Card}): {Card}
+    assert(#self.Cards + #cards >= 5, "need to have at least 5 cards to calculate the highest pile")
+
+    local pile = self:Copy()
     for _, card in ipairs(cards) do
-        hand:Push(card)
+        pile:Push(card)
     end
 
-    local handAces14SortedByRank = hand:Copy()
-    local handAces14SortedBySuit = hand:Copy()
-    local handAces1SortedByRank  = hand:Copy()
-    local handAces1SortedBySuit  = hand:Copy()
+    local pileAces14SortedByRank = pile:Copy()
+    local pileAces14SortedBySuit = pile:Copy()
+    local pileAces1SortedByRank  = pile:Copy()
+    local pileAces1SortedBySuit  = pile:Copy()
 
-    handAces14SortedByRank:ChangeAces(14)
-    handAces14SortedBySuit:ChangeAces(14)
-    handAces1SortedByRank:ChangeAces(1)
-    handAces1SortedBySuit:ChangeAces(1)
+    pileAces14SortedByRank:ChangeAces(14)
+    pileAces14SortedBySuit:ChangeAces(14)
+    pileAces1SortedByRank:ChangeAces(1)
+    pileAces1SortedBySuit:ChangeAces(1)
 
-    handAces14SortedByRank:SortByRank()
-    handAces14SortedBySuit:SortBySuit()
-    handAces1SortedByRank:SortByRank()
-    handAces1SortedBySuit:SortBySuit()
+    pileAces14SortedByRank:SortByRank()
+    pileAces14SortedBySuit:SortBySuit()
+    pileAces1SortedByRank:SortByRank()
+    pileAces1SortedBySuit:SortBySuit()
 
-    local function bestHand(combinations)
-        local best = { hand = nil, score = 0 }
+    local function bestPile(combinations)
+        local best = { pile = nil, score = 0 }
 
         for _, cards in ipairs(combinations) do
             -- TODO: THIS SUCKS, I ONLY NEED :RANK()
             -- BUT, I HAVE TO CREATE A WHOLE NEW OBJECT.
-            local hand = Hand.new(cards)
-            local score = hand:Rank()
+            local pile = Pile.new(cards)
+            local score = pile:Rank()
 
             if score > best.score then
-                best.hand = hand
+                best.pile = pile
                 best.score = score
             end
         end
@@ -237,31 +239,31 @@ function Hand:Highest(cards: {Card}): {Card}
         return best
     end
 
-    local handAces14SortedByRankBest = bestHand(_combinations(handAces14SortedByRank.Cards, 5))
-    local handAces14SortedBySuitBest = bestHand(_combinations(handAces14SortedBySuit.Cards, 5))
-    local handAces1SortedByRankBest  = bestHand(_combinations(handAces1SortedByRank.Cards, 5))
-    local handAces1SortedBySuitBest  = bestHand(_combinations(handAces1SortedBySuit.Cards, 5))
+    local pileAces14SortedByRankBest = bestPile(_combinations(pileAces14SortedByRank.Cards, 5))
+    local pileAces14SortedBySuitBest = bestPile(_combinations(pileAces14SortedBySuit.Cards, 5))
+    local pileAces1SortedByRankBest  = bestPile(_combinations(pileAces1SortedByRank.Cards, 5))
+    local pileAces1SortedBySuitBest  = bestPile(_combinations(pileAces1SortedBySuit.Cards, 5))
 
-    local best = handAces14SortedByRankBest
+    local best = pileAces14SortedByRankBest
 
     for _, candidate in ipairs({
-        handAces14SortedByRankBest,
-        handAces14SortedBySuitBest,
-        handAces1SortedByRankBest,
-        handAces1SortedBySuitBest,
+        pileAces14SortedByRankBest,
+        pileAces14SortedBySuitBest,
+        pileAces1SortedByRankBest,
+        pileAces1SortedBySuitBest,
     }) do
         if candidate.score > best.score then
             best = candidate
         end
     end
 
-    return best.hand.Cards
+    return best.pile.Cards
 end
 
-function Hand:Rank(): number
+function Pile:Rank(): number
     -- TODO: RETURN THE VALUE OF RANKED HAND (FROM _RANKED* FN), IN CASE A PLAYER HAVE THE SAME RANK.
-    -- NOTE: must be sorted, and hand size must be 5.
-    assert(#self.Cards == 5, "Hand must have exactly 5 cards")
+    -- NOTE: must be sorted, and pile size must be 5.
+    assert(#self.Cards == 5, "Pile must have exactly 5 cards")
 
     if self:_RankedRoyalFlush()    then return 10 end
     if self:_RankedStraightFlush() then return 9 end
@@ -275,4 +277,4 @@ function Hand:Rank(): number
     return 1 -- NOTE: ranked high card
 end
 
-return Hand
+return Pile

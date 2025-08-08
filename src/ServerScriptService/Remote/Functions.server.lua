@@ -7,8 +7,8 @@ local ServerStorage = game:GetService("ServerStorage")
 local Modules = ServerStorage:WaitForChild("Modules")
 local Managers = ServerStorage:WaitForChild("Managers")
 
-local Session = require(Modules.Session)
-local SessionManager = require(Managers.Session)
+local Table = require(Modules.Table)
+local TableManager = require(Managers.Table)
 
 function buildCards(handle: Part, cards: {[number]: Card}, cardSpacing: number)
     local center = handle.Position
@@ -62,8 +62,8 @@ EquipFunction.OnServerInvoke = function(player: Player)
     handle.Transparency = 1
     Instance.new("Highlight", handle)
 
-    local session = SessionManager.FindPlayerSession(player)
-    local _player = session:GetPlayer(player)
+    local _table = TableManager.FindPlayerTable(player)
+    local _player = _table:Player(player)
     buildCards(handle, _player.Hand.Cards, 0.19)
 
     local rightArmMotor6D = Instance.new("Motor6D")
