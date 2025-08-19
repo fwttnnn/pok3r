@@ -7,7 +7,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local Modules = ServerStorage:WaitForChild("Modules")
 local Managers = ServerStorage:WaitForChild("Managers")
 
-local Table = require(Modules.Table)
+local Table = require(Modules.Poker.Table)
 local TableManager = require(Managers.Table)
 
 function buildCards(handle: Part, cards: {[number]: Card}, cardSpacing: number)
@@ -63,7 +63,7 @@ EquipFunction.OnServerInvoke = function(player: Player)
     Instance.new("Highlight", handle)
 
     local _table = TableManager.FindPlayerTable(player)
-    local _player = _table:Player(player)
+    local _player = _table:GetPlayer(player)
     buildCards(handle, _player.Hand.Cards, 0.19)
 
     local rightArmMotor6D = Instance.new("Motor6D")

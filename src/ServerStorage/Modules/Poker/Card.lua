@@ -35,6 +35,7 @@ function Card.new(rank: Rank, suit: Suit, ace: number?)
     local template: Part = workspace:WaitForChild("Board").CARDEXAMPLE
     local part: Part = Cards.Blank:Clone()
 
+    part.Anchored = true
     part.CFrame = template.CFrame
     part.Parent = nil
 
