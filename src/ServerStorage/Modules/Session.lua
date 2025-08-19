@@ -31,6 +31,18 @@ function Session.new(players: {[number]: Player})
     }, Session)
 end
 
+function Session:IsOver(): boolean
+    local actives = 0
+
+    for _, player in ipairs(self.Table.Players) do
+        if player.Active then
+            actives += 1
+        end
+    end
+
+    return actives == 1
+end
+
 function Session:SetNextPlayer()
     self.State.Player.Current.Index = (self.State.Player.Current.Index % #self.Table.Players) + 1
 

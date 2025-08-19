@@ -198,8 +198,8 @@ function _combinations(tbl, n)
     return combinations
 end
 
-function Pile:Highest(cards: {Card}): {Card}
-    assert(#self.Cards + #cards >= 5, "need to have at least 5 cards to calculate the highest pile")
+function Pile:Best(cards: {Card}): {Card}
+    assert(#self.Cards + #cards >= 5, "need to have at least 5 cards to calculate the best pile")
 
     local pile = self:Copy()
     for _, card in ipairs(cards) do

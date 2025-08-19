@@ -40,6 +40,6 @@ Players.PlayerAdded:Connect(function(player)
     task.wait(1)
     session.Table:Deal()
 
-    print(Pile.new(_player1.Hand:Highest(session.Table.Cards.Community.Cards)):Rank())
-    print(Pile.new(_player2.Hand:Highest(session.Table.Cards.Community.Cards)):Rank())
+    print(Pile.new(_player1.Hand:Best(session.Table.Cards.Community.Cards)):Rank())
+    print(Pile.new(_player2.Hand:Best(session.Table.Cards.Community.Cards)):Rank())
 end)
