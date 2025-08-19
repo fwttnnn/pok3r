@@ -62,7 +62,7 @@ function Table:GetPlayer(player: Player)
     return self.Players[player.UserId]
 end
 
-function Table:DealCommunityCard()
+function Table:DealToCommunity()
     local card: Card = self.Deck:Pop()
     self.Cards.Community:Push(card)
 
@@ -89,14 +89,14 @@ function Table:DealCommunityCard()
     workspace.Invisible.Sound:Play()
 end
 
-function Table:DealPlayer(player: Player)
+function Table:DealToPlayer(player: Player)
     local _player = self:GetPlayer(player)
     _player.Hand:Push(self.Deck:Pop())
 end
 
 function Table:Deal(player: Player?)
-    if not player then return self:DealCommunityCard() end
-    return self:DealPlayer(player)
+    if not player then return self:DealToCommunity() end
+    return self:DealToPlayer(player)
 end
 
 return Table
