@@ -3,8 +3,14 @@ local Timer = {}
 Timer.__index = Timer
 
 function Timer.new()
-	return setmetatable({
+    local Events = {
         Finished = Instance.new("BindableEvent"),
+    }
+
+	return setmetatable({
+        Events = Events,
+        Finished = Events.Finished.Event,
+
         Running = false,
         StartTime = 0,
         Duration = 0,
@@ -26,9 +32,12 @@ function Timer:Start(duration)
             task.wait()
         end
 
+        -- NOTE: stopped by other script, we don't want to fire finished.
+        if not self.Running then return end
+
         self:Stop()
         self:Reset()
-        self.Finished:Fire()
+        self.Events.Finished:Fire()
     end)
 end
 

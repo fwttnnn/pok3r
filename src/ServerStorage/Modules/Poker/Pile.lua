@@ -222,17 +222,17 @@ function Pile:Best(cards: {Card}): {Card}
     pileAces1SortedBySuit:SortBySuit()
 
     local function bestPile(combinations)
-        local best = { pile = nil, score = 0 }
+        local best = { pile = nil, rank = 0 }
 
         for _, cards in ipairs(combinations) do
             -- TODO: THIS SUCKS, I ONLY NEED :RANK()
             -- BUT, I HAVE TO CREATE A WHOLE NEW OBJECT.
             local pile = Pile.new(cards)
-            local score = pile:Rank()
+            local rank = pile:Rank()
 
-            if score > best.score then
+            if rank > best.rank then
                 best.pile = pile
-                best.score = score
+                best.rank = rank
             end
         end
 
@@ -252,7 +252,7 @@ function Pile:Best(cards: {Card}): {Card}
         pileAces1SortedByRankBest,
         pileAces1SortedBySuitBest,
     }) do
-        if candidate.score > best.score then
+        if candidate.rank > best.rank then
             best = candidate
         end
     end
