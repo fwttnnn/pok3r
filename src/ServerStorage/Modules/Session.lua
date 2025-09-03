@@ -18,6 +18,7 @@ function Session.new(players: {[number]: Player})
     return setmetatable({
         Table = Table.new(players),
         Timer = Timer.new(),
+        _EndsOnIndex = #players + 1,
         State = {
             _HandledTimer = false,
             Loop = false,
@@ -82,7 +83,7 @@ function Session:StartNextTurn()
     -- NOTE: can go up to 4 turns because the players need to act.
     self.State.Turn += 1
 
-    self:ResetTurnCycle()
+    self._EndsOnIndex = #self.Table.Players + 1
     self.State.Last.Action = {
         Type = nil,
         Amount = nil,
@@ -109,36 +110,35 @@ function Session:IsActive(): boolean
     return actives > 0
 end
 
-function Session:ResetTurnCycle()
-    self.State.Player.Current.Index = 0
-end
-
 function Session:GetTurnPlayer()
     return self.Table.Players[self.State.Player.Current.Index]
 end
 
+-- so fucking annoying
+-- this code is trash as fuck
 function Session:SetNextPlayer(): boolean
     -- NOTE: just a heads up, clean this later
     if not self:IsActive() then return true end
 
     self.State.Player.Current.Index += 1
-    if self.State.Player.Current.Index > #self.Table.Players then
-        if self.State.Loop then
-            self.State.Loop = false
-            self:ResetTurnCycle()
-            return self:SetNextPlayer()
+    if self.State.Player.Current.Index == self._EndsOnIndex then
+        if self.State.Player.Current.Index > #self.Table.Players then
+            self.State.Player.Current.Index = 0
+        else
+            self.State.Player.Current.Index -= 1
         end
 
         return true
     end
+    if self.State.Player.Current.Index > #self.Table.Players then self.State.Player.Current.Index = 1 end
 
     while not self.Table.Players[self.State.Player.Current.Index].Active do
         self.State.Player.Current.Index += 1
-        if self.State.Player.Current.Index > #self.Table.Players then
-            if self.State.Loop then
-                self.State.Loop = false
-                self:ResetTurnCycle()
-                return self:SetNextPlayer()
+        if self.State.Player.Current.Index == self._EndsOnIndex then
+            if self.State.Player.Current.Index > #self.Table.Players then
+                self.State.Player.Current.Index = 0
+            else
+                self.State.Player.Current.Index -= 1
             end
 
             return true
@@ -178,7 +178,7 @@ function Session:Act(player: Player, action): boolean
             if self.State.Player.Current.Index > 1 then
                 -- TODO: this is shit. do queue
                 print("[debug] looping " .. self.State.Player.Current.Index)
-                self.State.Loop = true
+                self._EndsOnIndex = self.State.Player.Current.Index
             end
 
             print("[bet] pot increased", _player.Chips, self.Table.Pot)
