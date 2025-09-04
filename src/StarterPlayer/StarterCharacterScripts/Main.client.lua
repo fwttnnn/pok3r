@@ -1,12 +1,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Remote = {
-    Event = {
-        Act = ReplicatedStorage.Events.Session.Act,
-        Timer = ReplicatedStorage.Events.Session.Timer,
-    },
-    Function = {
-        Act = ReplicatedStorage.Functions.Session.Act,
-    },
+local Events = {
+    Act = ReplicatedStorage.Events.Match.Act,
+    Acted = ReplicatedStorage.Events.Match.Acted,
+    Timer = ReplicatedStorage.Events.Match.Timer,
 }
 
 local Players = game:GetService("Players")
@@ -34,21 +30,22 @@ for _, button in PlayerGui.ScreenGui.Buttons:GetChildren() do Buttons[button.Nam
 disableButtons()
 
 Buttons.Left.MouseButton1Click:Connect(function()
-    if not Remote.Function.Act:InvokeServer({Type = "CHECK"}) then return end
-    disableButtons()
+    Events.Act:FireServer({Type = "CHECK"})
 end)
 
 Buttons.Middle.MouseButton1Click:Connect(function()
     -- NOTE: should be ALL IN
-    if not Remote.Function.Act:InvokeServer({Type = "CALL" }) then return end
-    disableButtons()
+    Events.Act:FireServer({Type = "CALL" })
 end)
 
 Buttons.Right.MouseButton1Click:Connect(function()
-    if not Remote.Function.Act:InvokeServer({Type = "BET", Amount = 100}) then return end
-    disableButtons()
+    Events.Act:FireServer({Type = "BET", Amount = 100})
 end)
 
-Remote.Event.Act.OnClientEvent:Connect(function()
+Events.Act.OnClientEvent:Connect(function()
     enableButtons()
+end)
+
+Events.Acted.OnClientEvent:Connect(function()
+    disableButtons()
 end)

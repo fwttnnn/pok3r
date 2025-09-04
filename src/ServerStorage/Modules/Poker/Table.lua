@@ -55,6 +55,16 @@ function Table.new(players: {[number]: Player})
     }, Table)
 end
 
+function Table:PlayerIndex(player: Player): number
+    for index, _player in ipairs(self.Players) do
+        if _player.Id == player.UserId then
+            return index
+        end
+    end
+
+    return nil
+end
+
 -- NOTE: was O(1), but order matters, so it's ok for an O(n).
 -- n will always be a low value anyway.
 function Table:GetPlayer(player: Player)

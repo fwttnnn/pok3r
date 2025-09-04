@@ -1,13 +1,15 @@
 --!strict
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local Functions = {
     Equip = ReplicatedStorage.Functions.Hand.Equip,
     Unequip = ReplicatedStorage.Functions.Hand.Unequip,
 }
 
-local Managers = ServerStorage:WaitForChild("Managers")
-local SessionManager = require(Managers.Session)
+local Managers = {
+    Match = require(ServerStorage:WaitForChild("Managers").Match),
+}
 
 function buildCards(handle: Part, cards: {[number]: Card}, cardSpacing: number)
     local center = handle.Position
@@ -61,8 +63,9 @@ Functions.Equip.OnServerInvoke = function(player: Player)
     handle.Transparency = 1
     Instance.new("Highlight", handle)
 
-    local session = SessionManager.FindPlayerSession(player)
-    local _player = session.Table:GetPlayer(player)
+    local match = Managers.Match.FindPlayerMatch(player)
+    if not match then return {} end
+    local _player = match.Table:GetPlayer(player)
     buildCards(handle, _player.Hand.Cards, 0.19)
 
     local rightArmMotor6D = Instance.new("Motor6D")

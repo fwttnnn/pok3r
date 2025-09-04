@@ -7,46 +7,63 @@ local Card = require(Modules.Poker.Card)
 local Pile = require(Modules.Poker.Pile)
 local Table = require(Modules.Poker.Table)
 
-local Managers = ServerStorage:WaitForChild("Managers")
-local SessionManager = require(Managers.Session)
-local Session = require(Modules.Session)
+local Match = require(Modules.Match)
+local Managers = {
+    Match = require(ServerStorage:WaitForChild("Managers").Match),
+}
 
 local __players = {}
 
 Players.PlayerAdded:Connect(function(player)
-    -- table.insert(__players, player)
-    -- if #__players < 2 then return end
+    -- local match = Match.new({player, {UserId = 666}})
+    -- Managers.Match.Add(match)
 
-    -- task.wait(2)
+    -- match:Start()
+
+
+
+    table.insert(__players, player)
+    if #__players < 2 then return end
+
+    task.wait(2)
     
-    -- local p2 = table.remove(__players)
-    -- local p1 = table.remove(__players)
+    local p2 = table.remove(__players)
+    local p1 = table.remove(__players)
 
-    -- local session = Session.new({p1, p2})
-    -- SessionManager.Add(session)
+    local match = Match.new({p1, p2})
+    Managers.Match.Add(match)
 
-    -- session:Start()
+    match:Start()
 
-    local session = Session.new({player, {UserId = 666}})
-    SessionManager.Add(session)
 
-    session.Table.Cards.Community:Push(Card.new("6", "Spades"))
-    session.Table.Cards.Community:Push(Card.new("4", "Hearts"))
-    session.Table.Cards.Community:Push(Card.new("4", "Clubs"))
-    session.Table.Cards.Community:Push(Card.new("8", "Clubs"))
-    session.Table.Cards.Community:Push(Card.new("8", "Spades"))
 
-    local _player1 = session.Table:GetPlayer(player)
-    _player1.Hand:Push(Card.new("A", "Clubs"))
-    _player1.Hand:Push(Card.new("3", "Spades"))
+    -- local match = Match.new({player, {UserId = 666}})
+    -- Managers.Match.Add(match)
 
-    local _player2 = session.Table:GetPlayer({UserId = 666})
-    _player2.Hand:Push(Card.new("2", "Hearts"))
-    _player2.Hand:Push(Card.new("7", "Hearts"))
+    -- match.Table.Cards.Community:Push(Card.new("6", "Spades"))
+    -- match.Table.Cards.Community:Push(Card.new("4", "Hearts"))
+    -- match.Table.Cards.Community:Push(Card.new("4", "Clubs"))
+    -- match.Table.Cards.Community:Push(Card.new("8", "Clubs"))
+    -- match.Table.Cards.Community:Push(Card.new("8", "Spades"))
 
-    print(_player1.Hand:Best(session.Table.Cards.Community.Cards))
-    print(Pile.new(_player1.Hand:Best(session.Table.Cards.Community.Cards)):Rank())
+    -- local _player1 = match.Table:GetPlayer(player)
+    -- _player1.Hand:Push(Card.new("A", "Clubs"))
+    -- _player1.Hand:Push(Card.new("3", "Spades"))
 
-    print(_player2.Hand:Best(session.Table.Cards.Community.Cards))
-    print(Pile.new(_player2.Hand:Best(session.Table.Cards.Community.Cards)):Rank())
+    -- local _player2 = match.Table:GetPlayer({UserId = 666})
+    -- _player2.Hand:Push(Card.new("2", "Hearts"))
+    -- _player2.Hand:Push(Card.new("7", "Hearts"))
+
+    -- print(_player1.Hand:Best(match.Table.Cards.Community.Cards))
+    -- print(Pile.new(_player1.Hand:Best(match.Table.Cards.Community.Cards)):Rank())
+
+    -- print(_player2.Hand:Best(match.Table.Cards.Community.Cards))
+    -- print(Pile.new(_player2.Hand:Best(match.Table.Cards.Community.Cards)):Rank())
 end)
+
+-- local bind = Instance.new("BindableEvent")
+
+-- for i = 1, 10 do
+--     print(i)
+--     local data = bind.Event:Wait()
+-- end
