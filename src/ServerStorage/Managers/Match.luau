@@ -2,7 +2,7 @@
 -- Match Manager, keep track of all the matchs
 local MatchManager = {}
 
-function MatchManager.FindPlayerMatch(player: Player): Match
+function MatchManager.Find(player: Player): Match
     for _, match in ipairs(MatchManager) do
         if match.Table:GetPlayer(player) then
             return match

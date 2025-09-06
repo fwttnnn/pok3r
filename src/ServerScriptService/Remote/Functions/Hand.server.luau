@@ -63,7 +63,7 @@ Functions.Equip.OnServerInvoke = function(player: Player)
     handle.Transparency = 1
     Instance.new("Highlight", handle)
 
-    local match = Managers.Match.FindPlayerMatch(player)
+    local match = Managers.Match.Find(player)
     if not match then return {} end
     local _player = match.Table:GetPlayer(player)
     buildCards(handle, _player.Hand.Cards, 0.19)
