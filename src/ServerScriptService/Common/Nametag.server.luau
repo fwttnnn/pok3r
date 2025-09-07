@@ -1,10 +1,9 @@
 --!strict
 local ServerStorage = game:GetService("ServerStorage")
-local Modules = ServerStorage:WaitForChild("Modules")
-
-local House = require(Modules.House)
-
 local Players = game:GetService("Players")
+
+local Modules = ServerStorage:WaitForChild("Modules")
+local House = require(Modules.House)
 
 Players.PlayerAdded:Connect(function(player: Player)
     player.CharacterAdded:Connect(function(character: Model)

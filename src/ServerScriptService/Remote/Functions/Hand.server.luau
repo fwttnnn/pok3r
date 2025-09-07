@@ -2,6 +2,10 @@
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Modules = ServerStorage:WaitForChild("Modules")
+local Card = require(Modules.Poker.Card)
+local House = require(Modules.House)
+
 local Functions = {
     Hand = {
         Equip = ReplicatedStorage.Functions.Hand.Equip,
@@ -42,7 +46,7 @@ function buildCards(handle: Part, cards: {[number]: Card}, cardSpacing: number)
 
         local position = center - offset + Vector3.new(0, i * card.Size.Y, 0)
         card.Position = position
-        card.CFrame = CFrame.lookAt(position, center) * CFrame.Angles(0, math.rad(180), 0)
+        card.CFrame = CFrame.lookAt(position, center)
 
         local weld = Instance.new("WeldConstraint")
         weld.Parent = card
@@ -65,10 +69,20 @@ Functions.Hand.Equip.OnServerInvoke = function(player: Player)
     handle.Transparency = 1
     Instance.new("Highlight", handle)
 
+    local house = House.Get(player)
+    local suit = (house and house.Name) or "Club"
+
+    local cards = {}
+    table.insert(cards, Card.new("6", suit .. 's'))
+    table.insert(cards, Card.new("A", suit .. 's'))
+
     local match = Managers.Match.Find(player)
-    if not match then return {} end
-    local _player = match.Table:GetPlayer(player)
-    buildCards(handle, _player.Hand.Cards, 0.19)
+    if match then
+        local _player = match.Table:GetPlayer(player)
+        cards = _player.Hand.Cards
+    end
+
+    buildCards(handle, cards, 0.19)
 
     local rightArmMotor6D = Instance.new("Motor6D")
     rightArmMotor6D.Name = "Right Arm Motor6D"
@@ -85,7 +99,7 @@ Functions.Hand.Equip.OnServerInvoke = function(player: Player)
             math.rad(65)
         )
     
-    return _player.Hand.Cards
+    return cards
 end
 
 Functions.Hand.Unequip.OnServerInvoke = function(player: Player): nil
