@@ -5,9 +5,9 @@ Timer.__index = Timer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Events = {
     Timer = {
-        Start = ReplicatedStorage.Events.Match.Timer.Start,
-        Progress = ReplicatedStorage.Events.Match.Timer.Progress,
-        End = ReplicatedStorage.Events.Match.Timer.End,
+        Start = ReplicatedStorage.Events.Timer.Start,
+        Progress = ReplicatedStorage.Events.Timer.Progress,
+        End = ReplicatedStorage.Events.Timer.End,
     },
 }
 

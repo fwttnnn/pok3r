@@ -4,9 +4,10 @@ local Manager = {}
 
 function Manager.Find(player: Player): Match
     for _, match in ipairs(Manager) do
-        if match.Table:GetPlayer(player) then
-            return match
-        end
+        local p = match.Table:GetPlayer(player)
+        if not p then continue end
+
+        return match
     end
 
     return nil
@@ -17,7 +18,7 @@ function Manager.Add(match: Match)
 end
 
 function Manager.Remove(match: Match)
-    table.remove(Manager, match)
+    table.remove(Manager, table.find(Manager, match))
 end
 
 return Manager

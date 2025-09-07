@@ -7,31 +7,70 @@ local Modules = ServerStorage:WaitForChild("Modules")
 
 local Pile = require(Modules.Poker.Pile)
 local Table = require(Modules.Poker.Table)
+local Chips = require(Modules.Poker.Economy.Chips)
+
 local Timer = require(Modules.Common.Timer)
 local Queue = require(Modules.Common.Queue)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Events = {
-    Act = ReplicatedStorage.Events.Match.Act,
-    Acted = ReplicatedStorage.Events.Match.Acted,
-    Action = ReplicatedStorage.Events.Match.Action,
+    Match = {
+        Act = ReplicatedStorage.Events.Match.Act,
+        Acted = ReplicatedStorage.Events.Match.Acted,
+        Action = ReplicatedStorage.Events.Match.Action,
+        Turn = {
+            Betting = {
+                Started = ReplicatedStorage.Events.Match.Turn.Betting.Started,
+            },
+        },
+    },
     Timer = {
-        Start = ReplicatedStorage.Events.Match.Timer.Start,
-        Progress = ReplicatedStorage.Events.Match.Timer.Progress,
-        End = ReplicatedStorage.Events.Match.Timer.End,
+        Start = ReplicatedStorage.Events.Timer.Start,
+        Progress = ReplicatedStorage.Events.Timer.Progress,
+        End = ReplicatedStorage.Events.Timer.End,
     },
 }
 
 function Match.new(players: {[number]: Player})
+    -- NOTE: minimum chips to enter
+    local stake = 500
+    local _players = {}
+
+    -- TODO: check if player can join before calling Match.new()
+    for _, player in ipairs(players) do
+        if Chips.Get(player) - stake < 0 then
+            return nil
+        end
+    end
+
+    for _, player in ipairs(players) do
+        -- NOTE: cached remaining chips.
+        --       before entering, player should have enough chips to enter.
+        --       the script that calls Match.new() should check first.
+        local remaining = Chips.Lose(player, stake)
+
+        table.insert(_players, {
+            Player = player,
+            Chips = {
+                Remaining = remaining,
+                Stake = stake,
+            },
+        })
+    end
+
     return setmetatable({
-        Table = Table.new(players),
+        Table = Table.new(_players),
         Turns = Queue.new(),
         Timer = Timer.new(),
-        Last = #players, -- last player to move
+        Last = #_players, -- last player to move
+        Locked = false,
+        Terminated = false, -- forced terminated, e.g. one player left
     }, Match)
 end
 
 function Match:Start()
+    if self.Locked then return end
+
     self.Turns = Queue.new()
     self.Turns:Push({Type = "DP"})
     self.Turns:Push({Type = "BT"})
@@ -43,21 +82,41 @@ function Match:Start()
     self.Turns:Push({Type = "BT"})
     self.Turns:Push({Type = "SD"})
 
-    self:_Turn()
+    local winner = self:_Turn()
+    Chips.Gain(winner, self.Table.Pot)
+
+    -- NOTE: gain back chips on table.
+    --       at this point, the match should be disposed (wip, later we can restart)
+    for _, p in ipairs(self.Table.Players) do
+        Chips.Gain(p.Player, p.Chips.Stake)
+    end
+
+    self.Locked = true
+    -- TODO: ehh, do we remove it this quick? players can't view their hand anymore.
+    -- Managers.Match.Remove(self)
 end
 
-function Match:_Turn()
+function Match:_Turn(): Player
+    local winner = nil
+
     while not self.Turns:IsEmpty() do
         local turn = self.Turns:Pop()
         local handlers = {
             DP = function() self:_TurnPlayerDealing() end,
             DT = function() self:_TurnTableDealing(turn.Count) end,
             BT = function() self:_TurnBetting() end,
-            SD = function() self:_TurnShowdown() end,
+            SD = function() winner = self:_TurnShowdown() end,
         }
+
+        if self.Terminated then
+            handlers["SD"]()
+            break
+        end
 
         handlers[turn.Type]()
     end
+
+    return winner
 end
 
 function Match:_BuildQueue(): Queue
@@ -98,7 +157,35 @@ function Match:_TurnBetting()
         Amount = nil,
     }
 
+    local function playerLeft(): number
+        local count = 0
+
+        for _, _player in ipairs(self.Table.Players) do
+            if not _player.Active then continue end
+            count += 1
+        end
+
+        return count
+    end
+
+    -- NOTE: should jump into showdown
+    if playerLeft() <= 1 then
+        self.Terminated = true
+        return
+    end
+
+    for _, _player in ipairs(self.Table.Players) do
+        if not _player.Active then continue end
+        Events.Match.Turn.Betting.Started:FireClient(_player.Player)
+    end
+
     while not queue:IsEmpty() do
+        -- NOTE: should jump into showdown
+        if playerLeft() <= 1 then
+            self.Terminated = true
+            return
+        end
+
         local _player = queue:Pop()
         if not _player.Active then continue end
 
@@ -106,14 +193,14 @@ function Match:_TurnBetting()
             BET = function(action)
                 local amount = action.Amount
                 if amount <= 0 then return false end
-                if _player.Chips < amount then return false end
+                if _player.Chips.Stake < amount then return false end
                 if lastAction.Type == "BET" and amount <= lastAction.Amount then return false end
 
                 highestBet = amount
-                _player.Chips -= amount
+                _player.Chips.Stake -= amount
                 self.Table.Pot += amount
 
-                if _player.Chips <= 0 then
+                if _player.Chips.Stake <= 0 then
                     _player.Active = false
                 end
 
@@ -139,7 +226,7 @@ function Match:_TurnBetting()
                     end
                 end
 
-                print("[bet] pot increased", _player.Chips, self.Table.Pot)
+                print("[bet] pot increased", _player.Chips.Stake, self.Table.Pot)
                 return true
             end,
 
@@ -147,42 +234,45 @@ function Match:_TurnBetting()
                 -- if not (lastAction.Type == "BET" or lastAction.Type == "CALL") then return false end
                 if lastAction.Type ~= "BET" and lastAction.Type ~= "CALL" then return false end
 
-                local amount = math.min(_player.Chips, highestBet)
+                local amount = math.min(_player.Chips.Stake, highestBet)
                 if amount <= 0 then return false end
 
                 action.Amount = amount
-                _player.Chips -= amount
+                _player.Chips.Stake -= amount
                 self.Table.Pot += amount
 
-                if _player.Chips <= 0 then
+                if _player.Chips.Stake <= 0 then
                     _player.Active = false
                 end
 
-                print("[call] pot increased", _player.Chips, self.Table.Pot)
+                print("[call] pot increased", _player.Chips.Stake, self.Table.Pot)
                 return true
             end,
 
             CHECK = function(action)
                 if lastAction.Type == "BET" or lastAction.Type == "CALL" then return false end
 
-                print("[check] game continues", _player.Chips, self.Table.Pot)
+                print("[check] game continues", _player.Chips.Stake, self.Table.Pot)
                 return true
             end,
 
             FOLD = function(action)
                 _player.Active = false
-                print("[fold] player out", _player.Chips, self.Table.Pot)
+                print("[fold] player out", _player.Chips.Stake, self.Table.Pot)
                 return true
             end,
         }
 
         local acted = Instance.new("BindableEvent")
-        local _action
+        local _action = {
+            Type = nil,
+            Amount = nil,
+        }
 
         local actEventConnection
         local timerFinishedConnection
 
-        actEventConnection = Events.Act.OnServerEvent:Connect(function(player, action)
+        actEventConnection = Events.Match.Act.OnServerEvent:Connect(function(player, action)
             if player ~= _player.Player then return end
 
             local handler = actionHandlers[action.Type]
@@ -191,14 +281,18 @@ function Match:_TurnBetting()
             local accepted = handler(action)
             if not accepted then return end
 
-            _action = action
+            _action = {
+                Type = action.Type,
+                Amount = action.Amount,
+            }
+
             lastAction = {
                 Type = action.Type,
                 Amount = action.Amount,
             }
 
             acted:Fire()
-            Events.Acted:FireClient(_player.Player)
+            Events.Match.Acted:FireClient(_player.Player)
 
             actEventConnection:Disconnect()
             timerFinishedConnection:Disconnect()
@@ -219,13 +313,13 @@ function Match:_TurnBetting()
             end
 
             acted:Fire()
-            Events.Acted:FireClient(_player.Player)
+            Events.Match.Acted:FireClient(_player.Player)
 
             actEventConnection:Disconnect()
             timerFinishedConnection:Disconnect()
         end)
 
-        Events.Act:FireClient(_player.Player)
+        Events.Match.Act:FireClient(_player.Player)
         Events.Timer.Start:FireClient(_player.Player)
         assert(not self.Timer.Running)
         self.Timer:Reset()
@@ -240,7 +334,7 @@ function Match:_TurnBetting()
 
         for _, p in ipairs(self.Table.Players) do
             if p.Id == _player.Id then continue end
-            Events.Action:FireClient(p.Player, _player.Player, _action)
+            Events.Match.Action:FireClient(p.Player, _player.Player, _action)
         end
 
         actEventConnection:Disconnect()
@@ -249,9 +343,27 @@ function Match:_TurnBetting()
 
         self.Last = self.Table:PlayerIndex(_player.Player)
     end
+
+    -- NOTE: should jump into showdown
+    if playerLeft() <= 1 then
+        self.Terminated = true
+        return
+    end
 end
 
-function Match:_TurnShowdown()
+function Match:_TurnShowdown(): Player
+    -- NOTE: ended by folds
+    if self.Terminated and #self.Table.Cards.Community.Cards < 5 then
+        for _, _player in ipairs(self.Table.Players) do
+            if _player.Active then
+                print("[end] match ended by force, winner: (" .. _player.Player.DisplayName .. ")")
+                return _player.Player
+            end
+        end
+
+        assert(false, "there should be 1 active player")
+    end
+
     local hands = {}
     for _, _player in ipairs(self.Table.Players) do
         if not _player.Active then continue end
@@ -271,12 +383,15 @@ function Match:_TurnShowdown()
         return a.Rank > b.Rank
     end)
 
+    -- TODO: check for draws
     local winner = hands[1]
     print("[end] match ended, winner: (" .. winner.Player.DisplayName .. ") :: " .. winner.Rank .. " @ " ..  winner.Score)
 
     for i = 2, #hands do
-        print("[end] others: (" .. hands[i].Player.DisplayName .. ") :: " .. hands[i].Rank)
+        print("[end] others: (" .. hands[i].Player.DisplayName .. ") :: " .. hands[i].Rank .. " @ " .. hands[i].Score)
     end
+
+    return winner.Player
 end
 
 return Match

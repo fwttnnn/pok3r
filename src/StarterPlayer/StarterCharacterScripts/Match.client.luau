@@ -1,12 +1,19 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Events = {
-    Act = ReplicatedStorage.Events.Match.Act,
-    Acted = ReplicatedStorage.Events.Match.Acted,
-    Action = ReplicatedStorage.Events.Match.Action,
+    Match = {
+        Act = ReplicatedStorage.Events.Match.Act,
+        Acted = ReplicatedStorage.Events.Match.Acted,
+        Action = ReplicatedStorage.Events.Match.Action,
+        Turn = {
+            Betting = {
+                Started = ReplicatedStorage.Events.Match.Turn.Betting.Started,
+            },
+        },
+    },
     Timer = {
-        Start = ReplicatedStorage.Events.Match.Timer.Start,
-        Progress = ReplicatedStorage.Events.Match.Timer.Progress,
-        End= ReplicatedStorage.Events.Match.Timer.End,
+        Start = ReplicatedStorage.Events.Timer.Start,
+        Progress = ReplicatedStorage.Events.Timer.Progress,
+        End = ReplicatedStorage.Events.Timer.End,
     },
 }
 
@@ -14,8 +21,19 @@ local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
+local actions = {
+    -- NOTE: action 'Fold' will never appear here.
+    Last = {
+        Type = nil,
+        Amount = nil,
+    },
+}
+
 function disableButtons()
-    for _, button in PlayerGui.ScreenGui.Buttons:GetChildren() do
+    for _, obj in PlayerGui.ScreenGui.Buttons:GetDescendants() do
+        if not obj:IsA("TextButton") then continue end
+
+        local button = obj
         button.Visible = false
         button.Active = false
         button.Interactable = false
@@ -23,47 +41,153 @@ function disableButtons()
 end
 
 function enableButtons()
-    for _, button in PlayerGui.ScreenGui.Buttons:GetChildren() do
+    for _, obj in PlayerGui.ScreenGui.Buttons:GetDescendants() do
+        if not obj:IsA("TextButton") then continue end
+
+        local button = obj
         button.Visible = true
         button.Active = true
         button.Interactable = true
     end
 end
 
+function setButtonCallback(button, fn)
+    if button.Connection then
+        button.Connection:Disconnect()
+    end
+
+    button.Connection = button.GUI.MouseButton1Click:Connect(fn)
+end
+
+--
+-- Buttons
+--
+
 local Buttons = {}
-for _, button in PlayerGui.ScreenGui.Buttons:GetChildren() do Buttons[button.Name] = button end
+for _, obj in PlayerGui.ScreenGui.Buttons:GetChildren() do 
+    if not obj:IsA("TextButton") then continue end
+
+    Buttons[obj.Name] = {
+        GUI = obj,
+        Connection = nil,
+    }
+end
+
+Buttons.Upper = {}
+for _, obj in PlayerGui.ScreenGui.Buttons.Upper:GetChildren() do 
+    if not obj:IsA("TextButton") then continue end
+
+    Buttons.Upper[obj.Name] = {
+        GUI = obj,
+        Connection = nil,
+    }
+end
+
+-- NOTE: naming based on last action
+local buttonLayouts = {}
+
+buttonLayouts.Check = function()
+    Buttons.Left.GUI.Text = "CHECK"
+    setButtonCallback(Buttons.Left, function()
+        Events.Match.Act:FireServer({Type = "CHECK"})
+    end)
+
+    Buttons.Middle.GUI.Text = "ALL IN"
+    setButtonCallback(Buttons.Middle, function()
+        -- TODO: ALL IN
+        Events.Match.Act:FireServer({Type = "BET", Amount = 0})
+    end)
+
+    Buttons.Right.GUI.Text = "BET"
+    setButtonCallback(Buttons.Right, function()
+        Events.Match.Act:FireServer({Type = "BET", Amount = 100})
+    end)
+
+    Buttons.Upper.Right.GUI.Text = "FOLD"
+    setButtonCallback(Buttons.Upper.Right, function()
+        Events.Match.Act:FireServer({Type = "FOLD"})
+    end)
+end
+
+buttonLayouts.Call = function()
+    Buttons.Left.GUI.Text = "CALL"
+    setButtonCallback(Buttons.Left, function()
+        Events.Match.Act:FireServer({Type = "CALL"})
+    end)
+
+    Buttons.Middle.GUI.Text = "ALL IN"
+    setButtonCallback(Buttons.Middle, function()
+        -- TODO: ALL IN
+        Events.Match.Act:FireServer({Type = "BET", Amount = 0})
+    end)
+
+    Buttons.Right.GUI.Text = "RAISE"
+    setButtonCallback(Buttons.Right, function()
+        -- TODO: RAISE
+        Events.Match.Act:FireServer({Type = "BET", Amount = 0})
+    end)
+
+    Buttons.Upper.Right.GUI.Text = "FOLD"
+    setButtonCallback(Buttons.Upper.Right, function()
+        Events.Match.Act:FireServer({Type = "FOLD"})
+    end)
+end
+
+buttonLayouts.Fold = function() buttonLayouts[actions.Last.Type or "Default"]() end
+buttonLayouts.Bet = buttonLayouts.Call
+buttonLayouts.Default = buttonLayouts.Check
+buttonLayouts.Default()
+
 disableButtons()
 
-Buttons.Left.MouseButton1Click:Connect(function()
-    Events.Act:FireServer({Type = "CHECK"})
-end)
+--
+-- Act Events
+--
 
-Buttons.Middle.MouseButton1Click:Connect(function()
-    -- NOTE: should be ALL IN
-    Events.Act:FireServer({Type = "CALL" })
-end)
-
-Buttons.Right.MouseButton1Click:Connect(function()
-    Events.Act:FireServer({Type = "BET", Amount = 100})
-end)
-
-Events.Act.OnClientEvent:Connect(function()
+Events.Match.Act.OnClientEvent:Connect(function()
     enableButtons()
 end)
 
-Events.Acted.OnClientEvent:Connect(function()
+Events.Match.Acted.OnClientEvent:Connect(function()
     disableButtons()
 end)
 
-Events.Action.OnClientEvent:Connect(function(player, action)
+Events.Match.Action.OnClientEvent:Connect(function(player, action)
+    -- NOTE: only a word, why the hell doesn't lua have a standard library
+    local function capitalize(word: string): string
+        return (word:sub(1,1):upper() .. word:sub(2):lower())
+    end
+
+    action.Type = capitalize(action.Type)
+    buttonLayouts[action.Type]()
+
     print("[action]", player.DisplayName .. " acted " .. action.Type, action.Amount)
+
+    if action.Type == "Fold" then
+        return
+    end
+
+    actions.Last = action
 end)
 
-local BarUI = PlayerGui.ScreenGui.Timer.Wrapper.Bar
+Events.Match.Turn.Betting.Started.OnClientEvent:Connect(function()
+    actions.Last = {
+        Type = nil,
+        Amount = nil,
+    }
+
+    buttonLayouts.Default()
+end)
+
+--
+-- Timer GUI
+--
+
+local BarGUI = PlayerGui.ScreenGui.Timer.Wrapper.Bar
 
 Events.Timer.Start.OnClientEvent:Connect(function()
-    BarUI.BackgroundTransparency = 0
-    BarUI.Size = UDim2.new(1, 0, 1, 0)
+    BarGUI.BackgroundTransparency = 0
+    BarGUI.Size = UDim2.new(1, 0, 1, 0)
 end)
 
 Events.Timer.Progress.OnClientEvent:Connect(function(progress)
@@ -72,11 +196,11 @@ Events.Timer.Progress.OnClientEvent:Connect(function(progress)
 
     -- print(progress)
 
-    -- BarUI.Size = BarUI.Size:Lerp(UDim2.new(progress, 0, 1, 0), 0.1)
-    BarUI.Size = UDim2.new(progress, 0, 1, 0)
+    -- BarGUI.Size = BarGUI.Size:Lerp(UDim2.new(progress, 0, 1, 0), 0.1)
+    BarGUI.Size = UDim2.new(progress, 0, 1, 0)
 end)
 
 Events.Timer.End.OnClientEvent:Connect(function()
-    BarUI.BackgroundTransparency = 1
-    BarUI.Size = UDim2.new(0, 0, 1, 0)
+    BarGUI.BackgroundTransparency = 1
+    BarGUI.Size = UDim2.new(0, 0, 1, 0)
 end)

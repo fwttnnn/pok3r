@@ -13,15 +13,20 @@ local Deck = require(Modules.Poker.Deck)
 local Card = require(Modules.Poker.Card)
 local Pile = require(Modules.Poker.Pile)
 
-function Table.new(players: {[number]: Player})
-    local _players: {[number]: {Id: number, Active: boolean, Chips: number, Hand: Hand, Player: Player}} = {}
+function Table.new(players: {[number]: {Player: Player, Chips: {Remaining: number, Stake: number}}})
+    local _players = {}
     for _, player in ipairs(players) do
+        local p = player.Player
+
         table.insert(_players, {
-            Id = player.UserId,
+            Id = p.UserId,
+            Player = p,
             Active = true,
-            Chips = 500,
+            Chips = {
+                Remaining = player.Chips.Remaining,
+                Stake = player.Chips.Stake,
+            },
             Hand = Pile.new(), 
-            Player = player,
         })
     end
 
