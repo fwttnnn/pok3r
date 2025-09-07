@@ -1,9 +1,9 @@
 --!strict
--- Match Manager, keep track of all the matchs
-local MatchManager = {}
+-- Match Manager, keep track of all the matchs (local server scope)
+local Manager = {}
 
-function MatchManager.Find(player: Player): Match
-    for _, match in ipairs(MatchManager) do
+function Manager.Find(player: Player): Match
+    for _, match in ipairs(Manager) do
         if match.Table:GetPlayer(player) then
             return match
         end
@@ -12,12 +12,12 @@ function MatchManager.Find(player: Player): Match
     return nil
 end
 
-function MatchManager.Add(match: Match)
-    table.insert(MatchManager, match)
+function Manager.Add(match: Match)
+    table.insert(Manager, match)
 end
 
-function MatchManager.Remove(match: Match)
-    table.remove(MatchManager, match)
+function Manager.Remove(match: Match)
+    table.remove(Manager, match)
 end
 
-return MatchManager
+return Manager
