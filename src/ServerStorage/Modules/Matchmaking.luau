@@ -17,8 +17,8 @@ function Matchmaking.Queue(player: Player)
     local queue = MemoryStoreService:GetQueue("Queue--" .. bracket)
 
     local success, err = pcall(function()
-        local id = 0 -- TODO: ...
-        queue:AddAsync(id, 30) -- NOTE: expires after 30 seconds
+        local id = player.UserId
+        queue:AddAsync(id, 60) -- NOTE: expires after 60 seconds
     end)
 
     if not success then return Matchmaking.Queue(player) end
@@ -32,7 +32,7 @@ function Matchmaking.Dequeue(player: Player)
     local queue = MemoryStoreService:GetQueue("Queue--" .. bracket)
 
     local success, err = pcall(function()
-        local id = 0 -- TODO: ...
+        local id = player.UserId
         queue:RemoveAsync(id)
     end)
 
@@ -64,7 +64,7 @@ function Matchmaking.Listen()
 
         if #players ~= #ids then continue end
 
-        local placeId = 0 -- TODO: ...
+        local placeId = 100523856012906
         local teleportOptions = Instance.new("TeleportOptions")
         teleportOptions.ShouldReserveServer = false -- TODO: check up docs
 
@@ -78,7 +78,7 @@ function Matchmaking.Listen()
         end)
     end
 
-    task.delay(1, Matchmaking.Listen) -- NOTE: avoid stack overflow
+    task.delay(1, Matchmaking.Listen) -- NOTE: avoid stack overflow, the caller should know this fn spawns new thread.
                                       -- although, would it make infinite threads? no cuz the thread is dismissed.
 end
 
