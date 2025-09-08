@@ -375,9 +375,9 @@ function Match:_TurnShowdown(): Player
 
         local hand = Pile.new(_player.Hand:Best(self.Table.Cards.Community.Cards))
         table.insert(hands, {Player = _player.Player,
-                                Hand = hand,
-                                Rank = hand:Rank(),
-                                Score = hand:Score()})
+                             Hand = hand,
+                             Rank = hand:Rank(),
+                             Score = hand:Score()})
     end
 
     table.sort(hands, function(a, b)
@@ -388,12 +388,16 @@ function Match:_TurnShowdown(): Player
         return a.Rank > b.Rank
     end)
 
+    print("table ::", self.Table.Cards.Community)
+
     -- TODO: check for draws
     local winner = hands[1]
     print("[end] match ended, winner: (" .. winner.Player.DisplayName .. ") :: " .. winner.Rank .. " @ " ..  winner.Score)
+    print(winner.Hand)
 
     for i = 2, #hands do
         print("[end] others: (" .. hands[i].Player.DisplayName .. ") :: " .. hands[i].Rank .. " @ " .. hands[i].Score)
+        print(hands[i].Hand)
     end
 
     return winner.Player

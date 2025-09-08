@@ -10,6 +10,23 @@ function Pile.new(cards: Cards?)
     }, Pile)
 end
 
+function Pile:__tostring()
+    local str = ""
+
+    str = str .. "("
+    for i = 1, #self.Cards do
+        local card = self.Cards[i]
+        str = str .. card.Rank .. " " .. card.Suit
+
+        if i ~= #self.Cards then
+            str = str .. ", "
+        end
+    end
+    str = str .. ")"
+
+    return str
+end
+
 function Pile:Push(card: Card)
     table.insert(self.Cards, card)
 end
