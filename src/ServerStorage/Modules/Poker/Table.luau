@@ -112,7 +112,6 @@ function Table:DealToCommunity()
         local billboard = Instance.new("BillboardGui")
         billboard.Size = UDim2.new(1.25, 0, 0.5, 0)
         billboard.StudsOffsetWorldSpace = Vector3.new(0, .8, 0)
-        billboard.AlwaysOnTop = true
         billboard.Adornee = card.Part
         billboard.Parent = card.Part
 

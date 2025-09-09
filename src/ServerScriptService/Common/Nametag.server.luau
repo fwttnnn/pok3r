@@ -51,7 +51,7 @@ Players.PlayerAdded:Connect(function(player: Player)
         end
 
         label.TextColor3 = Color3.fromRGB(255, 255, 255)
-        label.TextStrokeTransparency = 0
+        label.TextStrokeTransparency = .3
         label.Font = Enum.Font.GothamBold
         label.TextScaled = true
     end)
