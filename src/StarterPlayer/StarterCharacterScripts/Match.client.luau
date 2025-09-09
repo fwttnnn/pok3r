@@ -153,6 +153,8 @@ Events.Match.Acted.OnClientEvent:Connect(function()
 end)
 
 Events.Match.Action.OnClientEvent:Connect(function(player, action)
+    if not action.Type then return end
+
     -- NOTE: only a word, why the hell doesn't lua have a standard library
     local function capitalize(word: string): string
         return (word:sub(1,1):upper() .. word:sub(2):lower())
