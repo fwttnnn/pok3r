@@ -1,3 +1,4 @@
+local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Events = {
     Match = {
@@ -9,6 +10,7 @@ local Events = {
                 Started = ReplicatedStorage.Events.Match.Turn.Betting.Started,
             },
         },
+        Winner = ReplicatedStorage.Events.Match.Winner,
     },
     Timer = {
         Start = ReplicatedStorage.Events.Timer.Start,
@@ -153,7 +155,7 @@ Events.Match.Acted.OnClientEvent:Connect(function()
 end)
 
 Events.Match.Action.OnClientEvent:Connect(function(player, action)
-    if not action.Type then return end
+    if not action.Type then return print("[action]", player.DisplayName .. " did not acted") end
 
     -- NOTE: only a word, why the hell doesn't lua have a standard library
     local function capitalize(word: string): string
@@ -179,6 +181,27 @@ Events.Match.Turn.Betting.Started.OnClientEvent:Connect(function()
     }
 
     buttonLayouts.Default()
+end)
+
+Events.Match.Winner.OnClientEvent:Connect(function(player)
+    local me = Player
+    local winner = player.UserId == me.UserId and "You" or player.DisplayName
+
+    local label = PlayerGui.ScreenGui.Broadcast
+    label.Text = winner .. " won the match!"
+    label.TextTransparency = 0
+
+    local tweenInfo = TweenInfo.new(
+        2, -- time (seconds)
+        Enum.EasingStyle.Quad,
+        Enum.EasingDirection.Out,
+        0, -- repeat count
+        false, -- reverses?
+        5 -- delay before tween starts
+    )
+
+    local tween = TweenService:Create(label, tweenInfo, {TextTransparency = 1})
+    tween:Play()
 end)
 
 --

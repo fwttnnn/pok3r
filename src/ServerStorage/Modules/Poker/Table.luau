@@ -22,11 +22,9 @@ local Storages = {
 function Table.new(players: {[number]: Player})
     local _players = {}
     for _, player in ipairs(players) do
-        local p = player.Player
-
         table.insert(_players, {
-            Id = p.UserId,
-            Player = p,
+            Id = player.UserId,
+            Player = player,
             Active = true,
             Health = 100,
             Hand = Pile.new(), 

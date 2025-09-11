@@ -22,6 +22,7 @@ local Events = {
                 Started = ReplicatedStorage.Events.Match.Turn.Betting.Started,
             },
         },
+        Winner = ReplicatedStorage.Events.Match.Winner,
     },
     Timer = {
         Start = ReplicatedStorage.Events.Timer.Start,
@@ -32,10 +33,10 @@ local Events = {
 
 function Match.new(players: {[number]: Player})
     return setmetatable({
-        Table = Table.new(_players),
+        Table = Table.new(players),
         Turns = Queue.new(),
         Timer = Timer.new(),
-        Last = #_players, -- last player to move
+        Last = #players, -- last player to move
         Locked = false,
         Terminated = false, -- forced terminated, e.g. one player left
     }, Match)
@@ -58,12 +59,19 @@ function Match:Start()
     local winners = self:_Turn()
     local draw = #winners > 1
 
+    self.Locked = true
+
     if draw then
-        -- NOTE: ???
+        -- NOTE: just restart the match, although this is rare.
         return
     end
 
-    self.Locked = true
+    local winner = winners[1]
+    for _, p in ipairs(self.Table.Players) do
+        -- NOTE: client checks if the player is the same as their own uid.
+        Events.Match.Winner:FireClient(p.Player, winner.Player)
+    end
+
     -- TODO: ehh, do we remove it this quick? players can't view their hand anymore.
     -- Storages.Memory.Matches.Remove(self)
 end
