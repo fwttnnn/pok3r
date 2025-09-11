@@ -6,6 +6,7 @@ local Events = {
         Acted = ReplicatedStorage.Events.Match.Acted,
         Action = ReplicatedStorage.Events.Match.Action,
         Turn = {
+            Started = ReplicatedStorage.Events.Match.Turn.Started,
             Betting = {
                 Started = ReplicatedStorage.Events.Match.Turn.Betting.Started,
             },
@@ -23,6 +24,7 @@ local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
+local health = 0
 local actions = {
     -- NOTE: action 'Fold' will never appear here.
     Last = {
@@ -96,13 +98,21 @@ buttonLayouts.Check = function()
 
     Buttons.Middle.GUI.Text = "ALL IN"
     setButtonCallback(Buttons.Middle, function()
-        -- TODO: ALL IN
-        Events.Match.Act:FireServer({Type = "BET", Amount = 0})
+        assert(health > 0)
+        Events.Match.Act:FireServer({Type = "BET", Amount = health})
     end)
 
     Buttons.Right.GUI.Text = "BET"
     setButtonCallback(Buttons.Right, function()
-        Events.Match.Act:FireServer({Type = "BET", Amount = 100})
+        -- TODO: create a user input
+        local amount = 10
+
+        if health < amount then
+            print("[client/bet] cannot bet, you don't have enough health")
+            return
+        end
+
+        Events.Match.Act:FireServer({Type = "BET", Amount = amount})
     end)
 
     Buttons.Upper.Right.GUI.Text = "FOLD"
@@ -119,14 +129,22 @@ buttonLayouts.Call = function()
 
     Buttons.Middle.GUI.Text = "ALL IN"
     setButtonCallback(Buttons.Middle, function()
-        -- TODO: ALL IN
-        Events.Match.Act:FireServer({Type = "BET", Amount = 0})
+        assert(health > 0)
+        Events.Match.Act:FireServer({Type = "BET", Amount = health})
     end)
 
     Buttons.Right.GUI.Text = "RAISE"
     setButtonCallback(Buttons.Right, function()
-        -- TODO: RAISE
-        Events.Match.Act:FireServer({Type = "BET", Amount = 0})
+        -- TODO: create a user input
+        assert(actions.Last.Amount ~= nil)
+        local amount = actions.Last.Amount + 10
+
+        if health < amount then
+            print("[client/raise] cannot raise, you don't have enough health")
+            return
+        end
+
+        Events.Match.Act:FireServer({Type = "BET", Amount = amount})
     end)
 
     Buttons.Upper.Right.GUI.Text = "FOLD"
@@ -143,15 +161,27 @@ buttonLayouts.Default()
 disableButtons()
 
 --
--- Act Events
+-- Events
 --
 
-Events.Match.Act.OnClientEvent:Connect(function()
-    enableButtons()
+Events.Match.Turn.Started.OnClientEvent:Connect(function(_health)
+    health = _health
+    actions.Last = {
+        Type = nil,
+        Amount = nil,
+    }
 end)
 
-Events.Match.Acted.OnClientEvent:Connect(function()
+Events.Match.Act.OnClientEvent:Connect(function(_health)
+    enableButtons()
+
+    health = _health
+end)
+
+Events.Match.Acted.OnClientEvent:Connect(function(_health)
     disableButtons()
+
+    health = _health
 end)
 
 Events.Match.Action.OnClientEvent:Connect(function(player, action)
@@ -184,24 +214,50 @@ Events.Match.Turn.Betting.Started.OnClientEvent:Connect(function()
 end)
 
 Events.Match.Winner.OnClientEvent:Connect(function(player)
-    local me = Player
-    local winner = player.UserId == me.UserId and "You" or player.DisplayName
+    local function _handleWin()
+        local me = Player
+        local winner = player.UserId == me.UserId and "You" or player.DisplayName
 
-    local label = PlayerGui.ScreenGui.Broadcast
-    label.Text = winner .. " won the match!"
-    label.TextTransparency = 0
+        local label = PlayerGui.ScreenGui.Broadcast
+        label.Text = winner .. " won the match."
+        label.TextTransparency = 0
 
-    local tweenInfo = TweenInfo.new(
-        2, -- time (seconds)
-        Enum.EasingStyle.Quad,
-        Enum.EasingDirection.Out,
-        0, -- repeat count
-        false, -- reverses?
-        5 -- delay before tween starts
-    )
+        local tweenInfo = TweenInfo.new(
+            2, -- seconds
+            Enum.EasingStyle.Quad,
+            Enum.EasingDirection.Out,
+            0, -- repeat count
+            false, -- reverses?
+            5 -- delay before tween starts
+        )
 
-    local tween = TweenService:Create(label, tweenInfo, {TextTransparency = 1})
-    tween:Play()
+        local tween = TweenService:Create(label, tweenInfo, {TextTransparency = 1})
+        tween:Play()
+    end
+
+    local function _handleDraw()
+        local label = PlayerGui.ScreenGui.Broadcast
+        label.Text = "The match ended in a draw."
+        label.TextTransparency = 0
+
+        local tweenInfo = TweenInfo.new(
+            2, -- seconds
+            Enum.EasingStyle.Quad,
+            Enum.EasingDirection.Out,
+            0, -- repeat count
+            false, -- reverses?
+            5 -- delay before tween starts
+        )
+
+        local tween = TweenService:Create(label, tweenInfo, {TextTransparency = 1})
+        tween:Play()
+    end
+
+    if not player then
+        return _handleDraw()
+    end
+
+    _handleWin()
 end)
 
 --

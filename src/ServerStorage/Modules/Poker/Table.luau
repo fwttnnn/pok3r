@@ -25,7 +25,8 @@ function Table.new(players: {[number]: Player})
         table.insert(_players, {
             Id = player.UserId,
             Player = player,
-            Active = true,
+            -- TODO: make this an enum
+            Status = "Alive",
             Health = 100,
             Hand = Pile.new(), 
         })
