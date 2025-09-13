@@ -61,19 +61,15 @@ function Match:Start()
     local winners = self:_Turn()
     local draw = #winners > 1
 
-    self.Locked = true
-
-    if draw then
-        -- NOTE: just restart the match, although this is rare.
-        Events.Match.Winner:FireClient(p.Player)
-        return
-    end
-
     local winner = winners[1]
+    if draw then winner = nil end
+
     for _, p in ipairs(self.Table.Players) do
         -- NOTE: client checks if the player is the same as their own uid.
         Events.Match.Winner:FireClient(p.Player, winner.Player)
     end
+
+    self.Locked = true
 
     -- TODO: ehh, do we remove it this quick? players can't view their hand anymore.
     -- Storages.Memory.Matches.Remove(self)
@@ -133,7 +129,7 @@ end
 function Match:_TurnTableDealing(count: number)
     for i = 1, count do
         self.Table:Deal()
-        task.wait(0.25)
+        task.wait(.65)
     end
 end
 

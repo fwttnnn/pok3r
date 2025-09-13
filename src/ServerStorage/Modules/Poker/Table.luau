@@ -226,7 +226,15 @@ function Table:DealToPlayer(player: Player)
     local tweenInfo = TweenInfo.new(2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
     local tween = TweenService:Create(card.Part, tweenInfo, { Position = targetPos, Rotation = Vector3.new(0, math.random(60, 120), 180) })
 
+    local tweenT = TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out, 0, false, .6)
+    local tweenT1 = TweenService:Create(card.Part, tweenT, { Transparency = 1  })
+    local tweenT2 = TweenService:Create(card.Part.Decal, tweenT, { Transparency = 1 })
+
     tween:Play()
+
+    tweenT1:Play()
+    tweenT2:Play()
+
     workspace.Invisible.Sound:Play()
 
     _player.Hand:Push(card)

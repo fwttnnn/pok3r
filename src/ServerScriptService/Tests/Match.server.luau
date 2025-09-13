@@ -63,7 +63,7 @@ function Test.TableDealToPlayers()
     task.wait(3)
 
     match.Table:Deal(_p1)
-    task.wait(2)
+    task.wait(.65)
     match.Table:Deal(_p1)
 end
 
