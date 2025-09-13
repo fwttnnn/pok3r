@@ -179,7 +179,7 @@ function Match:_TurnBetting()
     end
 
     for _, _player in ipairs(self.Table.Players) do
-        if not _player.Status == "Alive" then continue end
+        if _player.Status ~= "Alive" then continue end
         Events.Match.Turn.Betting.Started:FireClient(_player.Player)
     end
 
@@ -197,7 +197,7 @@ function Match:_TurnBetting()
         end
 
         local _player = queue:Pop()
-        if not _player.Status == "Alive" then continue end
+        if _player.Status ~= "Alive" then continue end
 
         local actionHandlers = {
             BET = function(action)
@@ -222,14 +222,14 @@ function Match:_TurnBetting()
 
                 for i = playerIndex + 1, #self.Table.Players do
                     local p = self.Table.Players[i]
-                    if not p.Status == "Alive" then continue end
+                    if p.Status ~= "Alive" then continue end
 
                     queue:Push(p)
                 end
 
                 for i = 1, playerIndex - 1 do
                     local p = self.Table.Players[i]
-                    if not p.Status == "Alive" then continue end
+                    if p.Status ~= "Alive" then continue end
 
                     queue:Push(p)
                 end
@@ -503,7 +503,7 @@ function Match:_TurnShowdown()
 
     local hands = {}
     for _, _player in ipairs(self.Table.Players) do
-        if not _player.Status == "Alive" then continue end
+        if _player.Status ~= "Alive" then continue end
 
         local hand = Pile.new(_player.Hand:Best(self.Table.Cards.Community.Cards))
         table.insert(hands, {Player = _player.Player,
