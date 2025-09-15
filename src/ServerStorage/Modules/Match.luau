@@ -179,13 +179,22 @@ function Match:_TurnBetting()
     end
 
     for _, _player in ipairs(self.Table.Players) do
+        local character = _player.Player.Character or _player.Player.CharacterAdded:Wait()
+        local head: Head = character:WaitForChild("Head")
+        local wrapper: Frame = head:WaitForChild("Billboard").Frame.Wrapper
+
+        local actionLabel = wrapper:FindFirstChild("Action")
+        if actionLabel then actionLabel:Destroy() end
+    end
+
+    for _, _player in ipairs(self.Table.Players) do
         if _player.Status ~= "Alive" then continue end
         Events.Match.Turn.Betting.Started:FireClient(_player.Player)
     end
 
     while not queue:IsEmpty() do
-        -- NOTE: should jump into showdown
         if isEveryoneExceptOneFolded() then
+            -- NOTE: should jump into showdown
             self.Status = "Everyone Folded"
             return
         end
@@ -233,6 +242,16 @@ function Match:_TurnBetting()
 
                     queue:Push(p)
                 end
+
+                -- NOTE: rebuilding queue means a new betting round (kinda, then we reset everyone's action label.
+                -- for _, _p in ipairs(self.Table.Players) do
+                --     local character = _p.Player.Character or _p.Player.CharacterAdded:Wait()
+                --     local head: Head = character:WaitForChild("Head")
+                --     local wrapper: Frame = head:WaitForChild("Billboard").Frame.Wrapper
+
+                --     local actionLabel = wrapper:FindFirstChild("Action")
+                --     if actionLabel then actionLabel:Destroy() end
+                -- end
 
                 print(queue:IsEmpty())
                 print(queue:Size())
@@ -282,6 +301,7 @@ function Match:_TurnBetting()
 
         local actEventConnection
         local timerFinishedConnection
+        local timerProgressionConnection
 
         actEventConnection = Events.Match.Act.OnServerEvent:Connect(function(player, action)
             if player ~= _player.Player then return end
@@ -330,8 +350,29 @@ function Match:_TurnBetting()
             timerFinishedConnection:Disconnect()
         end)
 
+        local character = _player.Player.Character or _player.Player.CharacterAdded:Wait()
+        local head: Head = character:WaitForChild("Head")
+        local wrapper: Frame = head:WaitForChild("Billboard").Frame.Wrapper
+
+        local actionLabel = wrapper:FindFirstChild("Action")
+        if actionLabel then actionLabel:Destroy() end
+
+        local timerWrapper = Instance.new("Frame", wrapper)
+        timerWrapper.Name = "Timer"
+        timerWrapper.BackgroundTransparency = 1
+        timerWrapper.Size = UDim2.fromScale(.7, .1)
+
+        local timerProgressBar = Instance.new("Frame", timerWrapper)
+        timerProgressBar.Name = "Bar"
+        timerProgressBar.Size = UDim2.fromScale(1, 1)
+
+        timerProgressionConnection = self.Timer.Progression:Connect(function(_: Player, progress: number)
+            timerProgressBar.Size = UDim2.fromScale(progress, 1)
+        end)
+
         Events.Match.Act:FireClient(_player.Player, _player.Health)
         Events.Timer.Start:FireClient(_player.Player)
+
         assert(not self.Timer.Running)
         self.Timer:Reset()
         self.Timer:Start(20, _player.Player)
@@ -340,8 +381,17 @@ function Match:_TurnBetting()
         acted.Event:Wait()
         print("player: " .. _player.Player.DisplayName .. " acted")
         Events.Timer.End:FireClient(_player.Player) 
+
+        timerWrapper:Destroy()
         self.Timer:Stop()
         self.Timer:Reset()
+
+        actionLabel = Instance.new("TextLabel", wrapper)
+        actionLabel.Name = "Action"
+        actionLabel.BackgroundTransparency = 1
+        actionLabel.Size = UDim2.fromScale(1, 1)
+        actionLabel.TextScaled = true
+        actionLabel.Text = lastAction.Type
 
         for _, p in ipairs(self.Table.Players) do
             if p.Id == _player.Id then continue end
@@ -349,6 +399,7 @@ function Match:_TurnBetting()
         end
 
         actEventConnection:Disconnect()
+        timerProgressionConnection:Disconnect()
         timerFinishedConnection:Disconnect() -- NOTE: make sure timer is disconnected. 
                                              -- this can still be called because of the Timer:Reset() if not done.
 
@@ -503,7 +554,7 @@ function Match:_TurnShowdown()
 
     local hands = {}
     for _, _player in ipairs(self.Table.Players) do
-        if _player.Status ~= "Alive" then continue end
+        if _player.Status == "Folded" then continue end
 
         local hand = Pile.new(_player.Hand:Best(self.Table.Cards.Community.Cards))
         table.insert(hands, {Player = _player.Player,

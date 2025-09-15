@@ -12,13 +12,18 @@ local Events = {
 }
 
 function Timer.new()
-    local Events = {
+    local events = {
+        Progression = Instance.new("BindableEvent"),
         Finished = Instance.new("BindableEvent"),
     }
 
 	return setmetatable({
-        Events = Events,
-        Finished = Events.Finished.Event,
+        Events = events,
+
+        -- NOTE: somehow if we named these events the same as `Events.Timer`, it gets
+        --       replaced, lmao what a language.
+        Progression = events.Progression.Event,
+        Finished = events.Finished.Event,
 
         Running = false,
         StartTime = 0,
@@ -48,7 +53,9 @@ function Timer:Start(duration, player)
             local alpha = elapsed / duration -- 0 -> 1 progress
 
             if elapsed - lastUpdate >= .25 then
+                self.Events.Progression:Fire(player, 1 - alpha)
                 Events.Timer.Progress:FireClient(player, 1 - alpha) -- 1 -> 0 progress
+
                 lastUpdate = elapsed
             end
         end
@@ -58,7 +65,8 @@ function Timer:Start(duration, player)
 
         self:Stop()
         self:Reset()
-        self.Events.Finished:Fire()
+
+        self.Events.Finished:Fire(player)
         Events.Timer.End:FireClient(player)
     end)
 end

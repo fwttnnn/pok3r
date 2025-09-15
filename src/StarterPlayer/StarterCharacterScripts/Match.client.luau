@@ -13,11 +13,6 @@ local Events = {
         },
         Winner = ReplicatedStorage.Events.Match.Winner,
     },
-    Timer = {
-        Start = ReplicatedStorage.Events.Timer.Start,
-        Progress = ReplicatedStorage.Events.Timer.Progress,
-        End = ReplicatedStorage.Events.Timer.End,
-    },
 }
 
 local Players = game:GetService("Players")
@@ -268,30 +263,4 @@ Events.Match.Winner.OnClientEvent:Connect(function(player)
     end
 
     _handleWin()
-end)
-
---
--- Timer GUI
---
-
-local BarGUI = PlayerGui.ScreenGui.Timer.Wrapper.Bar
-
-Events.Timer.Start.OnClientEvent:Connect(function()
-    BarGUI.BackgroundTransparency = 0
-    BarGUI.Size = UDim2.new(1, 0, 1, 0)
-end)
-
-Events.Timer.Progress.OnClientEvent:Connect(function(progress)
-    if progress < 0 then progress = 0 end
-    if progress > 1 then progress = 1 end
-
-    -- print(progress)
-
-    -- BarGUI.Size = BarGUI.Size:Lerp(UDim2.new(progress, 0, 1, 0), 0.1)
-    BarGUI.Size = UDim2.new(progress, 0, 1, 0)
-end)
-
-Events.Timer.End.OnClientEvent:Connect(function()
-    BarGUI.BackgroundTransparency = 1
-    BarGUI.Size = UDim2.new(0, 0, 1, 0)
 end)

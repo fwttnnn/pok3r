@@ -33,26 +33,50 @@ Players.PlayerAdded:Connect(function(player: Player)
         -- gui.Face = Enum.NormalId.Back
 
         local billboard = Instance.new("BillboardGui")
-        billboard.Size = UDim2.new(3, 0, 1, 0)
-        billboard.StudsOffsetWorldSpace = Vector3.new(0, 1.8, 0)
+        billboard.Size = UDim2.new(3, 0, 1.5, 0)
+        billboard.StudsOffsetWorldSpace = Vector3.new(0, 2, 0)
         billboard.AlwaysOnTop = false
-        billboard.Name = "Nametag"
+        billboard.Name = "Billboard"
         billboard.Adornee = head
         billboard.Parent = head
 
-        local label = Instance.new("TextLabel", billboard)
-        label.Size = UDim2.new(1, 0, 1, 0)
-        label.BackgroundTransparency = 1
-        label.Text = player.DisplayName
+        print(billboard)
+
+        local frame = Instance.new("Frame", billboard)
+        frame.Size = UDim2.fromScale(1, 1)
+        frame.BackgroundTransparency = 1
+
+        local layout = Instance.new("UIListLayout", frame)
+        layout.FillDirection = Enum.FillDirection.Vertical
+        layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+        layout.HorizontalFlex = Enum.UIFlexAlignment.Fill
+        -- layout.VerticalAlignment = Enum.VerticalAlignment.Center
+        layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+        layout.SortOrder = Enum.SortOrder.LayoutOrder
+        layout.Padding = UDim.new(0, 8)
+
+        local wrapper = Instance.new("Frame", frame)
+        wrapper.Name = "Wrapper"
+        wrapper.BackgroundTransparency = 1
+        wrapper.Size = UDim2.fromScale(1, .25)
+
+        local layout = layout:Clone()
+        layout.Parent = wrapper
+
+        local nametag = Instance.new("TextLabel", frame)
+        nametag.Name = "Nametag"
+        nametag.Size = UDim2.fromScale(1, .5)
+        nametag.BackgroundTransparency = 1
+        nametag.Text = player.DisplayName
 
         local house = Storages.Global.House.Get(player)
         if house then
-            label.Text = "[" .. house.Symbol .. "] " .. label.Text
+            nametag.Text = "[" .. house.Symbol .. "] " .. nametag.Text
         end
 
-        label.TextColor3 = Color3.fromRGB(255, 255, 255)
-        label.TextStrokeTransparency = .3
-        label.Font = Enum.Font.GothamBold
-        label.TextScaled = true
+        nametag.TextColor3 = Color3.fromRGB(255, 255, 255)
+        nametag.TextStrokeTransparency = .3
+        nametag.Font = Enum.Font.GothamBold
+        nametag.TextScaled = true
     end)
 end)
