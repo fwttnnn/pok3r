@@ -1,16 +1,16 @@
 --!strict
-local Pile = {}
-Pile.__index = Pile
+local Hand = {}
+Hand.__index = Hand
 
-function Pile.new(cards: Cards?)
+function Hand.new(cards: Cards?)
     cards = cards or {}
 
     return setmetatable({
         Cards = cards
-    }, Pile)
+    }, Hand)
 end
 
-function Pile:__tostring()
+function Hand:__tostring()
     local str = ""
 
     str = str .. "("
@@ -27,15 +27,15 @@ function Pile:__tostring()
     return str
 end
 
-function Pile:Push(card: Card)
+function Hand:Push(card: Card)
     table.insert(self.Cards, card)
 end
 
-function Pile:Pop(): Card
+function Hand:Pop(): Card
     return table.remove(self.Cards)
 end
 
-function Pile:ChangeAces(ace: number)
+function Hand:ChangeAces(ace: number)
     assert(ace == 1 or ace == 14)
 
 	for _, card in ipairs(self.Cards) do
@@ -43,28 +43,28 @@ function Pile:ChangeAces(ace: number)
 	end
 end
 
-function Pile:Copy(): Pile
-    local pile = Pile.new()
+function Hand:Copy(): Hand
+    local hand = Hand.new()
 
 	for _, card in ipairs(self.Cards) do
-        pile:Push(card:Copy())
+        hand:Push(card:Copy())
 	end
 
-	return pile
+	return hand
 end
 
-function Pile:Sort()
+function Hand:Sort()
     self:SortByRank()
 end
 
-function Pile:SortByRank()
+function Hand:SortByRank()
     table.sort(self.Cards, function(a, b)
         -- NOTE: descending (high to low)
         return a:RankAsNumeric() > b:RankAsNumeric()
     end)
 end
 
-function Pile:SortBySuit()
+function Hand:SortBySuit()
     table.sort(self.Cards, function(a, b)
         if a.Suit == b.Suit then
             return a:RankAsNumeric() > b:RankAsNumeric()
@@ -74,7 +74,7 @@ function Pile:SortBySuit()
     end)
 end
 
-function Pile:__RankedNOfAKind(n: number): {[number]: Card}?
+function Hand:__RankedNOfAKind(n: number): {[number]: Card}?
     local kinds = {}
 
     for _, card in ipairs(self.Cards) do
@@ -91,7 +91,7 @@ function Pile:__RankedNOfAKind(n: number): {[number]: Card}?
     return nil
 end
 
-function Pile:_RankedHighCard(): {[number]: Card}?
+function Hand:_RankedHighCard(): {[number]: Card}?
     local highest = self.Cards[1]
 
     for i = 2, #self.Cards do
@@ -105,11 +105,11 @@ function Pile:_RankedHighCard(): {[number]: Card}?
     return {highest}
 end
 
-function Pile:_RankedOnePair(): {[number]: Card}?
+function Hand:_RankedOnePair(): {[number]: Card}?
     return self:__RankedNOfAKind(2)
 end
 
-function Pile:_RankedTwoPair(): {[number]: Card}?
+function Hand:_RankedTwoPair(): {[number]: Card}?
     local kinds = {}
     for _, card in ipairs(self.Cards) do
         kinds[card.Rank] = kinds[card.Rank] or {}
@@ -139,11 +139,11 @@ function Pile:_RankedTwoPair(): {[number]: Card}?
     return nil
 end
 
-function Pile:_RankedThreeOfAKind(): {[number]: Card}?
+function Hand:_RankedThreeOfAKind(): {[number]: Card}?
     return self:__RankedNOfAKind(3)
 end
 
-function Pile:_RankedStraight(): {[number]: Card}?
+function Hand:_RankedStraight(): {[number]: Card}?
     local prevRank = self.Cards[1]:RankAsNumeric()
     local cards = {self.Cards[1]} -- NOTE: redundant `cards` var, but.. that's what it is.
 
@@ -163,7 +163,7 @@ function Pile:_RankedStraight(): {[number]: Card}?
     return cards
 end
 
-function Pile:_RankedFlush(): {[number]: Card}?
+function Hand:_RankedFlush(): {[number]: Card}?
     local suit: string = self.Cards[1].Suit
     local cards = {self.Cards[1]} -- NOTE: redundant, but we need a shallow copy
 
@@ -178,7 +178,7 @@ function Pile:_RankedFlush(): {[number]: Card}?
     return cards
 end
 
-function Pile:_RankedFullHouse(): {[number]: Card}?
+function Hand:_RankedFullHouse(): {[number]: Card}?
     local kinds = {}
     for _, card in ipairs(self.Cards) do
         if not kinds[card.Rank] then
@@ -215,11 +215,11 @@ function Pile:_RankedFullHouse(): {[number]: Card}?
     return nil
 end
 
-function Pile:_RankedFourOfAKind(): {[number]: Card}?
+function Hand:_RankedFourOfAKind(): {[number]: Card}?
     return self:__RankedNOfAKind(4)
 end
 
-function Pile:_RankedStraightFlush(): {[number]: Card}?
+function Hand:_RankedStraightFlush(): {[number]: Card}?
     local straight = self:_RankedStraight()
     if not straight then return nil end
 
@@ -227,11 +227,11 @@ function Pile:_RankedStraightFlush(): {[number]: Card}?
     if not flush then return nil end
 
     -- NOTE: either returning flush or straight works (assuming #self.Cards is always 5).
-    --       although, if #self.Cards > 5 then we need to re-check by creating a new pile from straight.
+    --       although, if #self.Cards > 5 then we need to re-check by creating a new hand from straight.
     return flush
 end
 
-function Pile:_RankedRoyalFlush(): {[number]: Card}?
+function Hand:_RankedRoyalFlush(): {[number]: Card}?
     if self.Cards[1].Rank ~= "A" or self.Cards[2].Rank ~= "K" then
         return nil
     end
@@ -239,28 +239,28 @@ function Pile:_RankedRoyalFlush(): {[number]: Card}?
     return self:_RankedStraightFlush()
 end
 
-function Pile:Best(cards: {Card}): {Card}
-    assert(#self.Cards + #cards >= 5, "need to have at least 5 cards to calculate the best pile")
+function Hand:Best(cards: {Card}): {Card}
+    assert(#self.Cards + #cards >= 5, "need to have at least 5 cards to calculate the best hand")
 
-    local pile = self:Copy()
+    local hand = self:Copy()
     for _, card in ipairs(cards) do
-        pile:Push(card)
+        hand:Push(card)
     end
 
-    local pileAces14SortedByRank = pile:Copy()
-    local pileAces14SortedBySuit = pile:Copy()
-    local pileAces1SortedByRank  = pile:Copy()
-    local pileAces1SortedBySuit  = pile:Copy()
+    local handAces14SortedByRank = hand:Copy()
+    local handAces14SortedBySuit = hand:Copy()
+    local handAces1SortedByRank  = hand:Copy()
+    local handAces1SortedBySuit  = hand:Copy()
 
-    pileAces14SortedByRank:ChangeAces(14)
-    pileAces14SortedBySuit:ChangeAces(14)
-    pileAces1SortedByRank:ChangeAces(1)
-    pileAces1SortedBySuit:ChangeAces(1)
+    handAces14SortedByRank:ChangeAces(14)
+    handAces14SortedBySuit:ChangeAces(14)
+    handAces1SortedByRank:ChangeAces(1)
+    handAces1SortedBySuit:ChangeAces(1)
 
-    pileAces14SortedByRank:SortByRank()
-    pileAces14SortedBySuit:SortBySuit()
-    pileAces1SortedByRank:SortByRank()
-    pileAces1SortedBySuit:SortBySuit()
+    handAces14SortedByRank:SortByRank()
+    handAces14SortedBySuit:SortBySuit()
+    handAces1SortedByRank:SortByRank()
+    handAces1SortedBySuit:SortBySuit()
 
     local function isHandBetter(handA, handB): boolean
         local rankA, rankB = handA.Rank, handB.Rank
@@ -282,14 +282,14 @@ function Pile:Best(cards: {Card}): {Card}
         end
 
         -- NOTE: get cards that's unused for rankings
-        local function kickers(pile, used)
+        local function kickers(hand, used)
             local _used = {}
             for _, c in ipairs(used) do
                 _used[c] = true
             end
 
             local _kickers = {}
-            for _, c in ipairs(pile.Cards) do
+            for _, c in ipairs(hand.Cards) do
                 if not _used[c] then
                     table.insert(_kickers, c)
                 end
@@ -303,8 +303,8 @@ function Pile:Best(cards: {Card}): {Card}
             return _kickers
         end
 
-        local kickersA = kickers(handA.Pile, rankA.Cards)
-        local kickersB = kickers(handB.Pile, rankB.Cards)
+        local kickersA = kickers(handA.Hand, rankA.Cards)
+        local kickersB = kickers(handB.Hand, rankB.Cards)
 
         assert(#kickersA == #kickersB)
         local n = #kickersA
@@ -321,17 +321,17 @@ function Pile:Best(cards: {Card}): {Card}
         return false -- NOTE: ties
     end
 
-    local function bestPile(combinations)
-        local best = {Pile = nil, Rank = {Tier = 0, Cards = {}}}
+    local function bestHand(combinations)
+        local best = {Hand = nil, Rank = {Tier = 0, Cards = {}}}
 
         for _, cards in ipairs(combinations) do
             -- NOTE: function :Rank() requires the cards to be sorted,
-            --       function isHandBetter() requires pile to be sorted too anyway.
+            --       function isHandBetter() requires hand to be sorted too anyway.
             --       although, this is not too concerning.
             table.sort(cards, function(a, b) return a:RankAsNumeric() > b:RankAsNumeric() end)
 
-            local hand = Pile.new(cards)
-            local candidate = {Pile = hand,
+            local hand = Hand.new(cards)
+            local candidate = {Hand = hand,
                                Rank = hand:Rank()}
 
             if isHandBetter(candidate, best) then
@@ -363,17 +363,17 @@ function Pile:Best(cards: {Card}): {Card}
         return results
     end
 
-    local pileAces14SortedByRankBest = bestPile(_combinations(pileAces14SortedByRank.Cards, 5))
-    local pileAces14SortedBySuitBest = bestPile(_combinations(pileAces14SortedBySuit.Cards, 5))
-    local pileAces1SortedByRankBest  = bestPile(_combinations(pileAces1SortedByRank.Cards, 5))
-    local pileAces1SortedBySuitBest  = bestPile(_combinations(pileAces1SortedBySuit.Cards, 5))
+    local handAces14SortedByRankBest = bestHand(_combinations(handAces14SortedByRank.Cards, 5))
+    local handAces14SortedBySuitBest = bestHand(_combinations(handAces14SortedBySuit.Cards, 5))
+    local handAces1SortedByRankBest  = bestHand(_combinations(handAces1SortedByRank.Cards, 5))
+    local handAces1SortedBySuitBest  = bestHand(_combinations(handAces1SortedBySuit.Cards, 5))
 
-    local best = {Pile = nil, Rank = {Tier = 0, Cards = {}}}
+    local best = {Hand = nil, Rank = {Tier = 0, Cards = {}}}
     for _, candidate in ipairs({
-        pileAces14SortedByRankBest,
-        pileAces14SortedBySuitBest,
-        pileAces1SortedByRankBest,
-        pileAces1SortedBySuitBest,
+        handAces14SortedByRankBest,
+        handAces14SortedBySuitBest,
+        handAces1SortedByRankBest,
+        handAces1SortedBySuitBest,
     }) do
         local _ = isHandBetter(candidate, best)
         if _ then
@@ -381,12 +381,12 @@ function Pile:Best(cards: {Card}): {Card}
         end
     end
 
-    return best.Pile.Cards
+    return best.Hand.Cards
 end
 
-function Pile:Rank(): {Tier: number, Cards: {Card}}
-    -- NOTE: must be sorted, and pile size must be 5.
-    assert(#self.Cards == 5, "Pile must have exactly 5 cards")
+function Hand:Rank(): {Tier: number, Cards: {Card}}
+    -- NOTE: must be sorted, and hand size must be 5.
+    assert(#self.Cards == 5, "Hand must have exactly 5 cards")
 
     -- NOTE: rank order should be sorted by index (lowest to highest)
     local ranks = {
@@ -414,4 +414,4 @@ function Pile:Rank(): {Tier: number, Cards: {Card}}
     return nil
 end
 
-return Pile
+return Hand

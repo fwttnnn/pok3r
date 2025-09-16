@@ -2,15 +2,6 @@
 local Timer = {}
 Timer.__index = Timer
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Events = {
-    Timer = {
-        Start = ReplicatedStorage.Events.Timer.Start,
-        Progress = ReplicatedStorage.Events.Timer.Progress,
-        End = ReplicatedStorage.Events.Timer.End,
-    },
-}
-
 function Timer.new()
     local events = {
         Progression = Instance.new("BindableEvent"),
@@ -20,7 +11,7 @@ function Timer.new()
 	return setmetatable({
         Events = events,
 
-        -- NOTE: somehow if we named these events the same as `Events.Timer`, it gets
+        -- NOTE: somehow if we named these events the same as `Events.Timer` (deleted now), it gets
         --       replaced, lmao what a language.
         Progression = events.Progression.Event,
         Finished = events.Finished.Event,
@@ -44,8 +35,6 @@ function Timer:Start(duration, player)
     task.spawn(function()
         local lastUpdate = 0
 
-        Events.Timer.Start:FireClient(player)
-
         while self.Running and tick() - self.StartTime < duration do
             task.wait()
 
@@ -53,8 +42,7 @@ function Timer:Start(duration, player)
             local alpha = elapsed / duration -- 0 -> 1 progress
 
             if elapsed - lastUpdate >= .25 then
-                self.Events.Progression:Fire(player, 1 - alpha)
-                Events.Timer.Progress:FireClient(player, 1 - alpha) -- 1 -> 0 progress
+                self.Events.Progression:Fire(player, 1 - alpha) -- 1 -> 0 progress
 
                 lastUpdate = elapsed
             end
@@ -67,7 +55,6 @@ function Timer:Start(duration, player)
         self:Reset()
 
         self.Events.Finished:Fire(player)
-        Events.Timer.End:FireClient(player)
     end)
 end
 

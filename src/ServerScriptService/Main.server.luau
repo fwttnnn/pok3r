@@ -3,9 +3,6 @@ local ServerStorage = game:GetService("ServerStorage")
 local Players = game:GetService("Players")
 
 local Modules = ServerStorage:WaitForChild("Modules")
-local Card = require(Modules.Poker.Card)
-local Pile = require(Modules.Poker.Pile)
-local Table = require(Modules.Poker.Table)
 local Match = require(Modules.Match)
 
 local Storages = {

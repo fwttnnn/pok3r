@@ -5,7 +5,7 @@ Match.__index = Match
 local ServerStorage = game:GetService("ServerStorage")
 local Modules = ServerStorage:WaitForChild("Modules")
 
-local Pile = require(Modules.Poker.Pile)
+local Hand = require(Modules.Poker.Hand)
 local Table = require(Modules.Poker.Table)
 
 local Timer = require(Modules.Common.Timer)
@@ -19,16 +19,11 @@ local Events = {
         Action = ReplicatedStorage.Events.Match.Action,
         Turn = {
             Started = ReplicatedStorage.Events.Match.Turn.Started,
+            Ended = ReplicatedStorage.Events.Match.Turn.Ended,
             Betting = {
                 Started = ReplicatedStorage.Events.Match.Turn.Betting.Started,
             },
         },
-        Winner = ReplicatedStorage.Events.Match.Winner,
-    },
-    Timer = {
-        Start = ReplicatedStorage.Events.Timer.Start,
-        Progress = ReplicatedStorage.Events.Timer.Progress,
-        End = ReplicatedStorage.Events.Timer.End,
     },
 }
 
@@ -66,7 +61,7 @@ function Match:Start()
 
     for _, p in ipairs(self.Table.Players) do
         -- NOTE: client checks if the player is the same as their own uid.
-        Events.Match.Winner:FireClient(p.Player, winner)
+        Events.Match.Turn.Ended:FireClient(p.Player, winner)
     end
 
     self.Locked = true
@@ -313,12 +308,15 @@ function Match:_TurnBetting()
         end
 
         local acted = Instance.new("BindableEvent")
+        local connections = {
+            Act = nil,
+            Timer = {
+                Progression = nil,
+                Finished = nil,
+            },
+        }
 
-        local actEventConnection
-        local timerFinishedConnection
-        local timerProgressionConnection
-
-        actEventConnection = Events.Match.Act.OnServerEvent:Connect(function(player, action)
+        connections.Act = Events.Match.Act.OnServerEvent:Connect(function(player, action)
             if player ~= _player.Player then return end
 
             local handler = actionHandlers[action.Type]
@@ -334,12 +332,9 @@ function Match:_TurnBetting()
 
             acted:Fire()
             Events.Match.Acted:FireClient(_player.Player, _player.Health)
-
-            actEventConnection:Disconnect()
-            timerFinishedConnection:Disconnect()
         end)
         
-        timerFinishedConnection = self.Timer.Finished:Connect(function()
+        connections.Timer.Finished = self.Timer.Finished:Connect(function()
             print("[timeout] auto-act for " .. _player.Player.DisplayName)
 
             local actions = {"CHECK", "CALL", "FOLD"}
@@ -355,9 +350,6 @@ function Match:_TurnBetting()
 
             acted:Fire()
             Events.Match.Acted:FireClient(_player.Player, _player.Health)
-
-            actEventConnection:Disconnect()
-            timerFinishedConnection:Disconnect()
         end)
 
         local character = _player.Player.Character or _player.Player.CharacterAdded:Wait()
@@ -376,25 +368,21 @@ function Match:_TurnBetting()
         timerProgressBar.Name = "Bar"
         timerProgressBar.Size = UDim2.fromScale(1, 1)
 
-        timerProgressionConnection = self.Timer.Progression:Connect(function(_: Player, progress: number)
+        connections.Timer.Progression = self.Timer.Progression:Connect(function(_: Player, progress: number)
             timerProgressBar.Size = UDim2.fromScale(progress, 1)
         end)
 
         Events.Match.Act:FireClient(_player.Player, _player.Health)
-        Events.Timer.Start:FireClient(_player.Player)
-
-        assert(not self.Timer.Running)
         self.Timer:Reset()
         self.Timer:Start(20, _player.Player)
 
-        print("waiting " .. _player.Player.DisplayName .. " to act")
+        -- NOTE: this blocks process.
+        --       pass this event, the player should have acted.
         acted.Event:Wait()
-        print("player: " .. _player.Player.DisplayName .. " acted")
-        Events.Timer.End:FireClient(_player.Player) 
 
-        timerWrapper:Destroy()
         self.Timer:Stop()
         self.Timer:Reset()
+        timerWrapper:Destroy()
 
         actionLabel = Instance.new("TextLabel", wrapper)
         actionLabel.Name = "Action"
@@ -412,10 +400,9 @@ function Match:_TurnBetting()
             Events.Match.Action:FireClient(p.Player, _player.Player, lastAction)
         end
 
-        actEventConnection:Disconnect()
-        timerProgressionConnection:Disconnect()
-        timerFinishedConnection:Disconnect() -- NOTE: make sure timer is disconnected. 
-                                             -- this can still be called because of the Timer:Reset() if not done.
+        connections.Act:Disconnect()
+        connections.Timer.Progression:Disconnect()
+        connections.Timer.Finished:Disconnect()
 
         self.Last = self.Table:PlayerIndex(_player.Player)
     end
@@ -468,14 +455,14 @@ function Match:_TurnShowdown()
         end
 
         -- NOTE: get cards that's unused for rankings
-        local function kickers(pile, used)
+        local function kickers(hand, used)
             local _used = {}
             for _, c in ipairs(used) do
                 _used[c] = true
             end
 
             local _kickers = {}
-            for _, c in ipairs(pile.Cards) do
+            for _, c in ipairs(hand.Cards) do
                 if not _used[c] then
                     table.insert(_kickers, c)
                 end
@@ -489,8 +476,8 @@ function Match:_TurnShowdown()
             return _kickers
         end
 
-        local kickersA = kickers(handA.Pile, rankA.Cards)
-        local kickersB = kickers(handB.Pile, rankB.Cards)
+        local kickersA = kickers(handA.Hand, rankA.Cards)
+        local kickersB = kickers(handB.Hand, rankB.Cards)
 
         assert(#kickersA == #kickersB)
         local n = #kickersA
@@ -527,14 +514,14 @@ function Match:_TurnShowdown()
         end
 
         -- NOTE: get cards that's unused for rankings
-        local function kickers(pile, used)
+        local function kickers(hand, used)
             local _used = {}
             for _, c in ipairs(used) do
                 _used[c] = true
             end
 
             local _kickers = {}
-            for _, c in ipairs(pile.Cards) do
+            for _, c in ipairs(hand.Cards) do
                 if not _used[c] then
                     table.insert(_kickers, c)
                 end
@@ -548,8 +535,8 @@ function Match:_TurnShowdown()
             return _kickers
         end
 
-        local kickersA = kickers(handA.Pile, rankA.Cards)
-        local kickersB = kickers(handB.Pile, rankB.Cards)
+        local kickersA = kickers(handA.Hand, rankA.Cards)
+        local kickersB = kickers(handB.Hand, rankB.Cards)
 
         assert(#kickersA == #kickersB)
         local n = #kickersA
@@ -570,9 +557,9 @@ function Match:_TurnShowdown()
     for _, _player in ipairs(self.Table.Players) do
         if _player.Status == "Folded" then continue end
 
-        local hand = Pile.new(_player.Hand:Best(self.Table.Cards.Community.Cards))
+        local hand = Hand.new(_player.Hand:Best(self.Table.Cards.Community.Cards))
         table.insert(hands, {Player = _player.Player,
-                             Pile = hand,
+                             Hand = hand,
                              Rank = hand:Rank()})
     end
 
@@ -593,13 +580,13 @@ function Match:_TurnShowdown()
 
     for _, h in ipairs(winners) do
         print("[end/w] match ended, winner: (" .. h.Player.DisplayName .. ") :: " .. h.Rank.Tier .. " @", h.Rank.Cards)
-        print(h.Pile)
+        print(h.Hand)
     end
 
     for i = #winners + 1, #hands do
         local h = hands[i]
         print("[end/o] match ended, others: (" .. h.Player.DisplayName .. ") :: " .. h.Rank.Tier .. " @", h.Rank.Cards)
-        print(h.Pile)
+        print(h.Hand)
     end
 
     return winners

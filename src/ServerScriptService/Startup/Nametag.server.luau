@@ -40,8 +40,6 @@ Players.PlayerAdded:Connect(function(player: Player)
         billboard.Adornee = head
         billboard.Parent = head
 
-        print(billboard)
-
         local frame = Instance.new("Frame", billboard)
         frame.Size = UDim2.fromScale(1, 1)
         frame.BackgroundTransparency = 1
@@ -50,7 +48,6 @@ Players.PlayerAdded:Connect(function(player: Player)
         layout.FillDirection = Enum.FillDirection.Vertical
         layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
         layout.HorizontalFlex = Enum.UIFlexAlignment.Fill
-        -- layout.VerticalAlignment = Enum.VerticalAlignment.Center
         layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
         layout.SortOrder = Enum.SortOrder.LayoutOrder
         layout.Padding = UDim.new(0, 8)

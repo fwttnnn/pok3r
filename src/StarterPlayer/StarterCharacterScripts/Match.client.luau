@@ -7,11 +7,11 @@ local Events = {
         Action = ReplicatedStorage.Events.Match.Action,
         Turn = {
             Started = ReplicatedStorage.Events.Match.Turn.Started,
+            Ended = ReplicatedStorage.Events.Match.Turn.Ended,
             Betting = {
                 Started = ReplicatedStorage.Events.Match.Turn.Betting.Started,
             },
         },
-        Winner = ReplicatedStorage.Events.Match.Winner,
     },
 }
 
@@ -156,14 +156,14 @@ buttonLayouts.Call = function()
     end)
 end
 
-buttonLayouts.Fold = function() buttonLayouts[actions.Last.Type or "Default"]() end
-buttonLayouts.Bet = buttonLayouts.Call
+buttonLayouts.Fold      = function() buttonLayouts[actions.Last.Type or "Default"]() end
+buttonLayouts.Bet       = buttonLayouts.Call
 buttonLayouts["All In"] = buttonLayouts.Bet
-buttonLayouts["Raise"] = buttonLayouts.Bet
-buttonLayouts.Default = buttonLayouts.Check
-buttonLayouts.Default()
+buttonLayouts["Raise"]  = buttonLayouts.Bet
+buttonLayouts.Default   = buttonLayouts.Check
 
 disableButtons()
+buttonLayouts.Default()
 
 --
 -- Events
@@ -179,13 +179,11 @@ end)
 
 Events.Match.Act.OnClientEvent:Connect(function(_health)
     enableButtons()
-
     health = _health
 end)
 
 Events.Match.Acted.OnClientEvent:Connect(function(_health)
     disableButtons()
-
     health = _health
 end)
 
@@ -231,7 +229,7 @@ Events.Match.Turn.Betting.Started.OnClientEvent:Connect(function()
     buttonLayouts.Default()
 end)
 
-Events.Match.Winner.OnClientEvent:Connect(function(player)
+Events.Match.Turn.Ended.OnClientEvent:Connect(function(player)
     local function _handleWin()
         local me = Player
         local winner = player.UserId == me.UserId and "You" or player.DisplayName

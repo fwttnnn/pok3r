@@ -11,7 +11,7 @@ local Modules = ServerStorage:WaitForChild("Modules")
 
 local Deck = require(Modules.Poker.Deck)
 local Card = require(Modules.Poker.Card)
-local Pile = require(Modules.Poker.Pile)
+local Hand = require(Modules.Poker.Hand)
 
 local Storages = {
     Global = {
@@ -28,7 +28,7 @@ function Table.new(players: {[number]: Player})
             -- TODO: make this an enum
             Status = "Alive",
             Health = 100,
-            Hand = Pile.new(), 
+            Hand = Hand.new(), 
         })
     end
 
@@ -74,8 +74,8 @@ function Table.new(players: {[number]: Player})
         Deck = deck,
         Pot = 0,
         Cards = {
-            Community = Pile.new(),
-            Burned = Pile.new()
+            Community = Hand.new(),
+            Burned = Hand.new(),
         }
     }, Table)
 end
