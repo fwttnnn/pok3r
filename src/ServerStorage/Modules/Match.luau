@@ -118,6 +118,7 @@ function Match:Rematch()
         Events.Match.Rematch.Act:FireClient(p.Player)
     end
 
+    self:__RemoveAllPlayersActionBillboard()
     self:__AddPlayerIcons()
 
     self.Timer:Stop()
