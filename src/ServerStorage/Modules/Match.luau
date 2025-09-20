@@ -42,6 +42,8 @@ end
 function Match:Start()
     if self.Locked then return end
 
+    self.Locked = true
+
     self.Turns = Queue.new()
     self.Turns:Push({Type = "DP"})
     self.Turns:Push({Type = "BT"})
@@ -58,20 +60,69 @@ function Match:Start()
     self:__RemoveAllPlayersActionBillboard()
     self:__AddWinnerBillboard(winners)
 
-    self.Locked = true
-
     -- TODO: ehh, do we remove it this quick? players can't view their hand anymore.
     -- Storages.Memory.Matches.Remove(self)
 end
 
+function Match:__GetPlayerBillboardWrapper(player: Player): Frame
+    local character = player.Character or player.CharacterAdded:Wait()
+    local head: Head = character:WaitForChild("Head")
+    local wrapper: Frame = head:WaitForChild("Billboard").Frame.Wrapper
+
+    return wrapper
+end
+
+function Match:__AddActionBillboard(player: Player, action)
+    local wrapper: Frame = self:__GetPlayerBillboardWrapper(player)
+
+    local label = Instance.new("TextLabel", wrapper)
+    label.Name = "Action"
+    label.BackgroundTransparency = 1
+    label.Size = UDim2.fromScale(1, 1)
+    label.TextScaled = true
+    label.Text = action.Type
+
+    if action.Amount and action.Type ~= "ALL IN" then
+        label.Text = action.Type .. " " .. action.Amount
+    end
+end
+
+function Match:__RemoveActionBillboard(player: Player)
+    local wrapper: Frame = self:__GetPlayerBillboardWrapper(player)
+    local label: TextLabel = wrapper:FindFirstChild("Action")
+
+    if label then
+        label:Destroy()
+    end
+end
+
 function Match:__RemoveAllPlayersActionBillboard()
     for _, _player in ipairs(self.Table.Players) do
-        local character = _player.Player.Character or _player.Player.CharacterAdded:Wait()
-        local head: Head = character:WaitForChild("Head")
-        local wrapper: Frame = head:WaitForChild("Billboard").Frame.Wrapper
+        self:__RemoveActionBillboard(_player.Player)
+    end
+end
 
-        local actionLabel = wrapper:FindFirstChild("Action")
-        if actionLabel then actionLabel:Destroy() end
+function Match:__AddTimerBillboard(player: Player): Frame
+    local wrapper = self:__GetPlayerBillboardWrapper(player)
+
+    local timerWrapper = Instance.new("Frame", wrapper)
+    timerWrapper.Name = "Timer"
+    timerWrapper.BackgroundTransparency = 1
+    timerWrapper.Size = UDim2.fromScale(.7, .1)
+
+    local timerProgressBar = Instance.new("Frame", timerWrapper)
+    timerProgressBar.Name = "Bar"
+    timerProgressBar.Size = UDim2.fromScale(1, 1)
+
+    return timerProgressBar
+end
+
+function Match:__RemoveTimerBillboard(player: Player)
+    local wrapper = self:__GetPlayerBillboardWrapper(player)
+    local timerWrapper: Frame = wrapper.Timer
+
+    if timerWrapper then
+        timerWrapper:Destroy()
     end
 end
 
@@ -84,9 +135,8 @@ function Match:__AddWinnerBillboard(winners)
         local head: Head = character:WaitForChild("Head")
         local wrapper: Frame = head:WaitForChild("Billboard").Frame.Wrapper
 
-        -- TODO: rename label other than Action
         local label = Instance.new("TextLabel", wrapper)
-        label.Name = "Action"
+        label.Name = "Action" -- TODO: rename label other than Action
         label.BackgroundTransparency = 1
         label.Size = UDim2.fromScale(1, 1)
         label.TextScaled = true
@@ -369,21 +419,8 @@ function Match:_TurnBetting()
             Events.Match.Acted:FireClient(_player.Player, _player.Health)
         end)
 
-        local character = _player.Player.Character or _player.Player.CharacterAdded:Wait()
-        local head: Head = character:WaitForChild("Head")
-        local wrapper: Frame = head:WaitForChild("Billboard").Frame.Wrapper
-
-        local actionLabel = wrapper:FindFirstChild("Action")
-        if actionLabel then actionLabel:Destroy() end
-
-        local timerWrapper = Instance.new("Frame", wrapper)
-        timerWrapper.Name = "Timer"
-        timerWrapper.BackgroundTransparency = 1
-        timerWrapper.Size = UDim2.fromScale(.7, .1)
-
-        local timerProgressBar = Instance.new("Frame", timerWrapper)
-        timerProgressBar.Name = "Bar"
-        timerProgressBar.Size = UDim2.fromScale(1, 1)
+        self:__RemoveActionBillboard(_player.Player)
+        local timerProgressBar = self:__AddTimerBillboard(_player.Player)
 
         connections.Timer.Progression = self.Timer.Progression:Connect(function(_: Player, progress: number)
             timerProgressBar.Size = UDim2.fromScale(progress, 1)
@@ -399,18 +436,9 @@ function Match:_TurnBetting()
 
         self.Timer:Stop()
         self.Timer:Reset()
-        timerWrapper:Destroy()
 
-        actionLabel = Instance.new("TextLabel", wrapper)
-        actionLabel.Name = "Action"
-        actionLabel.BackgroundTransparency = 1
-        actionLabel.Size = UDim2.fromScale(1, 1)
-        actionLabel.TextScaled = true
-        actionLabel.Text = lastAction.Type
-
-        if lastAction.Amount and lastAction.Type ~= "ALL IN" then
-            actionLabel.Text = lastAction.Type .. " " .. lastAction.Amount
-        end
+        self:__RemoveTimerBillboard(_player.Player)
+        self:__AddActionBillboard(_player.Player, lastAction)
 
         for _, p in ipairs(self.Table.Players) do
             if p.Id == _player.Id then continue end

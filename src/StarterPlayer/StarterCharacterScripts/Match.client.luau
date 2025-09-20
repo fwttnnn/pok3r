@@ -7,7 +7,7 @@ local Events = {
         Action = ReplicatedStorage.Events.Match.Action,
         Turn = {
             Started = ReplicatedStorage.Events.Match.Turn.Started,
-            Ended = ReplicatedStorage.Events.Match.Turn.Ended,
+            -- Ended = ReplicatedStorage.Events.Match.Turn.Ended,
             Betting = {
                 Started = ReplicatedStorage.Events.Match.Turn.Betting.Started,
             },
@@ -227,51 +227,4 @@ Events.Match.Turn.Betting.Started.OnClientEvent:Connect(function()
     }
 
     buttonLayouts.Default()
-end)
-
-Events.Match.Turn.Ended.OnClientEvent:Connect(function(player)
-    local function _handleWin()
-        local me = Player
-        local winner = player.UserId == me.UserId and "You" or player.DisplayName
-
-        local label = PlayerGui.ScreenGui.Broadcast
-        label.Text = winner .. " won the match."
-        label.TextTransparency = 0
-
-        local tweenInfo = TweenInfo.new(
-            2, -- seconds
-            Enum.EasingStyle.Quad,
-            Enum.EasingDirection.Out,
-            0, -- repeat count
-            false, -- reverses?
-            5 -- delay before tween starts
-        )
-
-        local tween = TweenService:Create(label, tweenInfo, {TextTransparency = 1})
-        tween:Play()
-    end
-
-    local function _handleDraw()
-        local label = PlayerGui.ScreenGui.Broadcast
-        label.Text = "The match ended in a draw."
-        label.TextTransparency = 0
-
-        local tweenInfo = TweenInfo.new(
-            2, -- seconds
-            Enum.EasingStyle.Quad,
-            Enum.EasingDirection.Out,
-            0, -- repeat count
-            false, -- reverses?
-            5 -- delay before tween starts
-        )
-
-        local tween = TweenService:Create(label, tweenInfo, {TextTransparency = 1})
-        tween:Play()
-    end
-
-    if not player then
-        return _handleDraw()
-    end
-
-    _handleWin()
 end)
