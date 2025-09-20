@@ -22,7 +22,7 @@ function Timer.new()
     }, Timer)
 end
 
-function Timer:Start(duration, player)
+function Timer:Start(duration)
     if self.Running then
         warn("Warning: timer could not start again as it is already running.")
         return
@@ -42,7 +42,7 @@ function Timer:Start(duration, player)
             local alpha = elapsed / duration -- 0 -> 1 progress
 
             if elapsed - lastUpdate >= .25 then
-                self.Events.Progression:Fire(player, 1 - alpha) -- 1 -> 0 progress
+                self.Events.Progression:Fire(1 - alpha) -- 1 -> 0 progress
 
                 lastUpdate = elapsed
             end
@@ -54,7 +54,7 @@ function Timer:Start(duration, player)
         self:Stop()
         self:Reset()
 
-        self.Events.Finished:Fire(player)
+        self.Events.Finished:Fire()
     end)
 end
 

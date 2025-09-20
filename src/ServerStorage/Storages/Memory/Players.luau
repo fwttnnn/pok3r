@@ -2,6 +2,8 @@
 -- players storage, a memory cache for player.
 local Storage = {}
 
+local Players = game:GetService("Players")
+
 local ServerStorage = game:GetService("ServerStorage")
 local Storages = {
     Global = {
@@ -22,8 +24,23 @@ function Storage.Set(player: Player, key: string, val)
 end
 
 function Storage.Load(player: Player)
+    local success, url = pcall(function()
+        local id = player.UserId
+        if id < 0 then id = 1531539874 end -- NOTE: on test
+
+        return Players:GetUserThumbnailAsync(id,
+                                             Enum.ThumbnailType.HeadShot,
+                                             Enum.ThumbnailSize.Size420x420)
+    end)
+
+    if not success then
+        warn("uh, can't fetch " .. player.DisplayName .. " icon")
+        warn(url)
+    end
+
     Storage[player.UserId] = {
         House = Storages.Global.House.Get(player),
+        Icon = url,
     }
 
     return Storage[player.UserId]

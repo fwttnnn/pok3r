@@ -2,14 +2,19 @@ local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Events = {
     Match = {
-        Act = ReplicatedStorage.Events.Match.Act,
-        Acted = ReplicatedStorage.Events.Match.Acted,
-        Action = ReplicatedStorage.Events.Match.Action,
+        Rematch = {
+            Act = ReplicatedStorage.Events.Match.Rematch.Act,
+            Acted = ReplicatedStorage.Events.Match.Rematch.Acted,
+            Join = ReplicatedStorage.Events.Match.Rematch.Join,
+            Quit = ReplicatedStorage.Events.Match.Rematch.Quit,
+        },
         Turn = {
             Started = ReplicatedStorage.Events.Match.Turn.Started,
-            -- Ended = ReplicatedStorage.Events.Match.Turn.Ended,
             Betting = {
                 Started = ReplicatedStorage.Events.Match.Turn.Betting.Started,
+                Act = ReplicatedStorage.Events.Match.Turn.Betting.Act,
+                Acted = ReplicatedStorage.Events.Match.Turn.Betting.Acted,
+                Action = ReplicatedStorage.Events.Match.Turn.Betting.Action,
             },
         },
     },
@@ -98,12 +103,12 @@ local buttonLayouts = {}
 buttonLayouts.Check = function()
     Buttons.Left.GUI.Text = "CHECK"
     setButtonCallback(Buttons.Left, function()
-        Events.Match.Act:FireServer({Type = "CHECK"})
+        Events.Match.Turn.Betting.Act:FireServer({Type = "CHECK"})
     end)
 
     Buttons.Middle.GUI.Text = "ALL IN"
     setButtonCallback(Buttons.Middle, function()
-        Events.Match.Act:FireServer({Type = "ALL IN"})
+        Events.Match.Turn.Betting.Act:FireServer({Type = "ALL IN"})
     end)
 
     Buttons.Right.GUI.Text = "BET"
@@ -116,24 +121,24 @@ buttonLayouts.Check = function()
             return
         end
 
-        Events.Match.Act:FireServer({Type = "BET", Amount = amount})
+        Events.Match.Turn.Betting.Act:FireServer({Type = "BET", Amount = amount})
     end)
 
     Buttons.Upper.Right.GUI.Text = "FOLD"
     setButtonCallback(Buttons.Upper.Right, function()
-        Events.Match.Act:FireServer({Type = "FOLD"})
+        Events.Match.Turn.Betting.Act:FireServer({Type = "FOLD"})
     end)
 end
 
 buttonLayouts.Call = function()
     Buttons.Left.GUI.Text = "CALL"
     setButtonCallback(Buttons.Left, function()
-        Events.Match.Act:FireServer({Type = "CALL"})
+        Events.Match.Turn.Betting.Act:FireServer({Type = "CALL"})
     end)
 
     Buttons.Middle.GUI.Text = "ALL IN"
     setButtonCallback(Buttons.Middle, function()
-        Events.Match.Act:FireServer({Type = "ALL IN"})
+        Events.Match.Turn.Betting.Act:FireServer({Type = "ALL IN"})
     end)
 
     Buttons.Right.GUI.Text = "RAISE"
@@ -147,12 +152,12 @@ buttonLayouts.Call = function()
             return
         end
 
-        Events.Match.Act:FireServer({Type = "RAISE", Amount = amount})
+        Events.Match.Turn.Betting.Act:FireServer({Type = "RAISE", Amount = amount})
     end)
 
     Buttons.Upper.Right.GUI.Text = "FOLD"
     setButtonCallback(Buttons.Upper.Right, function()
-        Events.Match.Act:FireServer({Type = "FOLD"})
+        Events.Match.Turn.Betting.Act:FireServer({Type = "FOLD"})
     end)
 end
 
@@ -177,17 +182,17 @@ Events.Match.Turn.Started.OnClientEvent:Connect(function(_health)
     }
 end)
 
-Events.Match.Act.OnClientEvent:Connect(function(_health)
+Events.Match.Turn.Betting.Act.OnClientEvent:Connect(function(_health)
     enableButtons()
     health = _health
 end)
 
-Events.Match.Acted.OnClientEvent:Connect(function(_health)
+Events.Match.Turn.Betting.Acted.OnClientEvent:Connect(function(_health)
     disableButtons()
     health = _health
 end)
 
-Events.Match.Action.OnClientEvent:Connect(function(player, action)
+Events.Match.Turn.Betting.Action.OnClientEvent:Connect(function(player, action)
     -- NOTE: why the hell doesn't lua have a standard library duddd..
     -- SEE: http://lua-users.org/wiki/SciteTitleCase
     local function capitalize(str: string): string
@@ -227,4 +232,35 @@ Events.Match.Turn.Betting.Started.OnClientEvent:Connect(function()
     }
 
     buttonLayouts.Default()
+end)
+
+local joinButton = PlayerGui.ScreenGui.Join.Join
+local quitButton = PlayerGui.ScreenGui.Quit.Quit
+
+joinButton.MouseButton1Click:Connect(function()
+    Events.Match.Rematch.Join:FireServer()
+end)
+
+quitButton.MouseButton1Click:Connect(function()
+    Events.Match.Rematch.Quit:FireServer()
+end)
+
+Events.Match.Rematch.Act.OnClientEvent:Connect(function()
+    joinButton.Active = true
+    joinButton.Interactable = true
+    joinButton.Parent.Visible = true
+
+    quitButton.Active = true
+    quitButton.Interactable = true
+    quitButton.Parent.Visible = true
+end)
+
+Events.Match.Rematch.Acted.OnClientEvent:Connect(function()
+    joinButton.Active = false
+    joinButton.Interactable = false
+    joinButton.Parent.Visible = false
+
+    quitButton.Active = false
+    quitButton.Interactable = false
+    quitButton.Parent.Visible = false
 end)

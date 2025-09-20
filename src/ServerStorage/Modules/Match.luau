@@ -14,16 +14,27 @@ local Queue = require(Modules.Common.Queue)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Events = {
     Match = {
-        Act = ReplicatedStorage.Events.Match.Act,
-        Acted = ReplicatedStorage.Events.Match.Acted,
-        Action = ReplicatedStorage.Events.Match.Action,
+        Rematch = {
+            Act = ReplicatedStorage.Events.Match.Rematch.Act,
+            Acted = ReplicatedStorage.Events.Match.Rematch.Acted,
+            Join = ReplicatedStorage.Events.Match.Rematch.Join,
+            Quit = ReplicatedStorage.Events.Match.Rematch.Quit,
+        },
         Turn = {
             Started = ReplicatedStorage.Events.Match.Turn.Started,
-            Ended = ReplicatedStorage.Events.Match.Turn.Ended,
             Betting = {
                 Started = ReplicatedStorage.Events.Match.Turn.Betting.Started,
+                Act = ReplicatedStorage.Events.Match.Turn.Betting.Act,
+                Acted = ReplicatedStorage.Events.Match.Turn.Betting.Acted,
+                Action = ReplicatedStorage.Events.Match.Turn.Betting.Action,
             },
         },
+    },
+}
+
+local Storages = {
+    Memory = {
+        Players = require(ServerStorage:WaitForChild("Storages").Memory.Players),
     },
 }
 
@@ -33,17 +44,12 @@ function Match.new(players: {[number]: Player})
         Turns = Queue.new(),
         Timer = Timer.new(),
         Last = #players, -- last player to move
-        Locked = false,
         -- TODO: as enum
         Status = "Going"
     }, Match)
 end
 
 function Match:Start()
-    if self.Locked then return end
-
-    self.Locked = true
-
     self.Turns = Queue.new()
     self.Turns:Push({Type = "DP"})
     self.Turns:Push({Type = "BT"})
@@ -62,6 +68,137 @@ function Match:Start()
 
     -- TODO: ehh, do we remove it this quick? players can't view their hand anymore.
     -- Storages.Memory.Matches.Remove(self)
+end
+
+function Match:__AddPlayerIcons()
+    -- TODO: get billboard dynamically.
+    local billboard = workspace.Development.Board.Billboard
+    billboard.Frame.Visible = true
+
+    for _, p in (self.Table.Players) do
+        local frame: Frame = ReplicatedStorage.Icon:Clone()
+        local image: ImageLabel = frame.ImageLabel
+
+        local icon: string = Storages.Memory.Players.Get(p.Player).Icon
+        image.Image = icon
+
+        frame.Name = p.Player.UserId
+        frame.Parent = billboard.Frame
+    end
+end
+
+function Match:__UpdatePlayerIconToJoin(player: Player)
+    -- TODO: get billboard dynamically.
+    local billboard = workspace.Development.Board.Billboard
+
+    local frame: Frame = billboard.Frame[player.UserId]
+    frame.ImageLabel.UIStroke.Color = Color3.fromRGB(0, 255, 0) -- NOTE: green
+end
+
+function Match:__UpdatePlayerIconToQuit(player: Player)
+    -- TODO: get billboard dynamically.
+    local billboard = workspace.Development.Board.Billboard
+
+    local frame: Frame = billboard.Frame[player.UserId]
+    frame.ImageLabel.UIStroke.Color = Color3.fromRGB(255, 0, 0) -- NOTE: red
+end
+
+function Match:__RemovePlayerIcons()
+    local billboard = workspace.Development.Board.Billboard
+    billboard.Frame.Visible = false
+
+    for _, p in (self.Table.Players) do
+        billboard.Frame[p.Player.UserId]:Destroy()
+    end
+end
+
+-- NOTE: prompt rematch to all players.
+function Match:Rematch()
+    for _, p in (self.Table.Players) do
+        Events.Match.Rematch.Act:FireClient(p.Player)
+    end
+
+    self:__AddPlayerIcons()
+
+    self.Timer:Stop()
+    self.Timer:Reset()
+    self.Timer:Start(30) -- NOTE: 30 seconds.
+
+    local _players  = {
+        Joins = {},
+        Quits = {},
+    }
+
+    local function count(t)
+        local n = 0
+
+        for _ in pairs(t) do
+            n += 1
+        end
+
+        return n
+    end
+
+    local ready = Instance.new("BindableEvent")
+    local connections = {
+        -- TODO: rename to accept/decline.
+        Join = nil,
+        Quit = nil,
+        Timer = {
+            Progression = nil,
+            Finished = nil,
+        },
+    }
+
+    connections.Join = Events.Match.Rematch.Join.OnServerEvent:Connect(function(player: Player)
+        _players.Joins[player.UserId] = true
+        self:__UpdatePlayerIconToJoin(player)
+        Events.Match.Rematch.Acted:FireClient(player)
+
+        if count(_players.Joins) == #self.Table.Players - count(_players.Quits) then
+            ready:Fire()
+        end
+    end)
+
+    connections.Quit = Events.Match.Rematch.Quit.OnServerEvent:Connect(function(player: Player)
+        _players.Quits[player.UserId] = true
+        self:__UpdatePlayerIconToQuit(player)
+        Events.Match.Rematch.Acted:FireClient(player)
+
+        if count(_players.Joins) == #self.Table.Players - count(_players.Quits) then
+            ready:Fire()
+        end
+    end)
+
+    connections.Timer.Progression = self.Timer.Progression:Connect(function(progress: number)
+        -- UDim2.fromScale(progress, 1)
+    end)
+
+    connections.Timer.Finished = self.Timer.Finished:Connect(function()
+        for _, p in ipairs(self.Table.Players) do
+            local id = p.Player.UserId
+            local acted = _players.Joins[id] or _players.Quits[id]
+
+            if not acted then
+                _players.Quits[id] = true
+                self:__UpdatePlayerIconToQuit(p.Player)
+                Events.Match.Rematch.Acted:FireClient(p.Player)
+            end
+        end
+
+        ready:Fire()
+    end)
+
+    -- NOTE: blocking, waiting for all players to ready.
+    ready.Event:Wait()
+
+    connections.Join:Disconnect()
+    connections.Quit:Disconnect()
+    connections.Timer.Progression:Disconnect()
+    connections.Timer.Finished:Disconnect()
+
+    task.wait(2)
+    self:__RemovePlayerIcons()
 end
 
 function Match:__GetPlayerBillboardWrapper(player: Player): Frame
@@ -383,7 +520,7 @@ function Match:_TurnBetting()
             },
         }
 
-        connections.Act = Events.Match.Act.OnServerEvent:Connect(function(player, action)
+        connections.Act = Events.Match.Turn.Betting.Act.OnServerEvent:Connect(function(player: Player, action)
             if player ~= _player.Player then return end
 
             local handler = actionHandlers[action.Type]
@@ -398,7 +535,7 @@ function Match:_TurnBetting()
             }
 
             acted:Fire()
-            Events.Match.Acted:FireClient(_player.Player, _player.Health)
+            Events.Match.Turn.Betting.Acted:FireClient(_player.Player, _player.Health)
         end)
         
         connections.Timer.Finished = self.Timer.Finished:Connect(function()
@@ -416,19 +553,19 @@ function Match:_TurnBetting()
             end
 
             acted:Fire()
-            Events.Match.Acted:FireClient(_player.Player, _player.Health)
+            Events.Match.Turn.Betting.Acted:FireClient(_player.Player, _player.Health)
         end)
 
         self:__RemoveActionBillboard(_player.Player)
         local timerProgressBar = self:__AddTimerBillboard(_player.Player)
 
-        connections.Timer.Progression = self.Timer.Progression:Connect(function(_: Player, progress: number)
+        connections.Timer.Progression = self.Timer.Progression:Connect(function(progress: number)
             timerProgressBar.Size = UDim2.fromScale(progress, 1)
         end)
 
-        Events.Match.Act:FireClient(_player.Player, _player.Health)
+        Events.Match.Turn.Betting.Act:FireClient(_player.Player, _player.Health)
         self.Timer:Reset()
-        self.Timer:Start(20, _player.Player)
+        self.Timer:Start(20)
 
         -- NOTE: this blocks process.
         --       pass this event, the player should have acted.
@@ -442,7 +579,7 @@ function Match:_TurnBetting()
 
         for _, p in ipairs(self.Table.Players) do
             if p.Id == _player.Id then continue end
-            Events.Match.Action:FireClient(p.Player, _player.Player, lastAction)
+            Events.Match.Turn.Betting.Action:FireClient(p.Player, _player.Player, lastAction)
         end
 
         connections.Act:Disconnect()
