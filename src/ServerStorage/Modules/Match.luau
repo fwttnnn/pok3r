@@ -130,14 +130,17 @@ function Match:Rematch()
         Quits = {},
     }
 
-    local function count(t)
-        local n = 0
+    local function everyoneActed(): boolean
+        for _, p in ipairs(self.Table.Players) do
+            local id = p.Player.UserId
+            local acted = _players.Joins[id] or _players.Quits[id]
 
-        for _ in pairs(t) do
-            n += 1
+            if not acted then
+                return false
+            end
         end
 
-        return n
+        return true
     end
 
     local ready = Instance.new("BindableEvent")
@@ -156,7 +159,7 @@ function Match:Rematch()
         self:__UpdatePlayerIconToJoin(player)
         Events.Match.Rematch.Acted:FireClient(player)
 
-        if count(_players.Joins) == #self.Table.Players - count(_players.Quits) then
+        if everyoneActed() then
             ready:Fire()
         end
     end)
@@ -166,7 +169,7 @@ function Match:Rematch()
         self:__UpdatePlayerIconToQuit(player)
         Events.Match.Rematch.Acted:FireClient(player)
 
-        if count(_players.Joins) == #self.Table.Players - count(_players.Quits) then
+        if everyoneActed() then
             ready:Fire()
         end
     end)
