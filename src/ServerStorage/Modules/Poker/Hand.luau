@@ -239,6 +239,79 @@ function Hand:_RankedRoyalFlush(): {[number]: Card}?
     return self:_RankedStraightFlush()
 end
 
+-- NOTE: get cards that's unused for rankings
+function Hand:Kickers(used: {[number]: Card}): {[number]: Card}
+    local _used = {}
+    for _, c in ipairs(used) do
+        _used[c] = true
+    end
+
+    local _kickers = {}
+    for _, c in ipairs(self.Cards) do
+        if not _used[c] then
+            table.insert(_kickers, c)
+        end
+    end
+
+    -- NOTE: sadly, we need to sort it.
+    table.sort(_kickers, function(a, b)
+        return a:RankAsNumeric() > b:RankAsNumeric()
+    end)
+
+    return _kickers
+end
+
+-- NOTE: -1 is worse,
+--        0 is equal,
+--        1 is better,
+function Hand:Compare(other: Hand, _ranks): number
+    local ourRank = _ranks._Our or self:Rank()
+    local otherRank = _ranks._Other or other:Rank()
+
+    if ourRank.Tier ~= otherRank.Tier then
+        return (ourRank.Tier > otherRank.Tier) and 1 or -1
+    end
+
+    assert(#ourRank.Cards == #otherRank.Cards)
+    local n = #ourRank.Cards
+
+    for i = 1, n do
+        local a = ourRank.Cards[i]:RankAsNumeric()
+        local b = otherRank.Cards[i]:RankAsNumeric()
+
+        if a ~= b then
+            return (a > b) and 1 or -1
+        end
+    end
+
+    local ourKickers = self:Kickers(ourRank.Cards)
+    local otherKickers = other:Kickers(otherRank.Cards)
+
+    assert(#ourKickers == #otherKickers)
+    local n = #ourKickers
+
+    -- NOTE: assuming sorted.
+    for i = 1, n do
+        local a = ourKickers[i]:RankAsNumeric()
+        local b = otherKickers[i]:RankAsNumeric()
+
+        if a ~= b then
+            return (a > b) and 1 or -1
+        end
+    end
+
+    -- NOTE: ties
+    return 0
+end
+
+function Hand:Beats(other: Hand, _ranks): boolean
+    return self:Compare(other, _ranks) == 1
+end
+
+function Hand:Equal(other: Hand, _ranks): boolean
+    return self:Compare(other, _ranks) == 0
+end
+
 function Hand:Best(cards: {Card}): {Card}
     assert(#self.Cards + #cards >= 5, "need to have at least 5 cards to calculate the best hand")
 
@@ -262,65 +335,6 @@ function Hand:Best(cards: {Card}): {Card}
     handAces1SortedByRank:SortByRank()
     handAces1SortedBySuit:SortBySuit()
 
-    local function isHandBetter(handA, handB): boolean
-        local rankA, rankB = handA.Rank, handB.Rank
-
-        if rankA.Tier ~= rankB.Tier then
-            return rankA.Tier > rankB.Tier
-        end
-
-        assert(#rankA.Cards == #rankB.Cards)
-        local n = #rankA.Cards
-
-        for i = 1, n do
-            local a = rankA.Cards[i]:RankAsNumeric()
-            local b = rankB.Cards[i]:RankAsNumeric()
-
-            if a ~= b then
-                return a > b
-            end
-        end
-
-        -- NOTE: get cards that's unused for rankings
-        local function kickers(hand, used)
-            local _used = {}
-            for _, c in ipairs(used) do
-                _used[c] = true
-            end
-
-            local _kickers = {}
-            for _, c in ipairs(hand.Cards) do
-                if not _used[c] then
-                    table.insert(_kickers, c)
-                end
-            end
-
-            -- NOTE: sadly, we need to sort it.
-            table.sort(_kickers, function(a, b)
-                return a:RankAsNumeric() > b:RankAsNumeric()
-            end)
-
-            return _kickers
-        end
-
-        local kickersA = kickers(handA.Hand, rankA.Cards)
-        local kickersB = kickers(handB.Hand, rankB.Cards)
-
-        assert(#kickersA == #kickersB)
-        local n = #kickersA
-
-        for i = 1, n do
-            local a = kickersA[i]:RankAsNumeric()
-            local b = kickersB[i]:RankAsNumeric()
-
-            if a ~= b then
-                return a > b
-            end
-        end
-
-        return false -- NOTE: ties
-    end
-
     local function bestHand(combinations)
         local best = {Hand = nil, Rank = {Tier = 0, Cards = {}}}
 
@@ -334,7 +348,7 @@ function Hand:Best(cards: {Card}): {Card}
             local candidate = {Hand = hand,
                                Rank = hand:Rank()}
 
-            if isHandBetter(candidate, best) then
+            if candidate.Hand:Beats(best.Hand, {_Other = best.Rank, _Our = candidate.Rank}) then
                 best = candidate
             end
         end
@@ -375,8 +389,7 @@ function Hand:Best(cards: {Card}): {Card}
         handAces1SortedByRankBest,
         handAces1SortedBySuitBest,
     }) do
-        local _ = isHandBetter(candidate, best)
-        if _ then
+        if candidate.Hand:Beats(best.Hand, {_Other = best.Rank, _Our = candidate.Rank}) then
             best = candidate
         end
     end

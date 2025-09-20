@@ -54,20 +54,44 @@ function Match:Start()
     self.Turns:Push({Type = "SD"})
 
     local winners = self:_Turn()
-    local draw = #winners > 1
 
-    local winner: Player = winners[1].Player
-    if draw then winner = nil end
-
-    for _, p in ipairs(self.Table.Players) do
-        -- NOTE: client checks if the player is the same as their own uid.
-        Events.Match.Turn.Ended:FireClient(p.Player, winner)
-    end
+    self:__RemoveAllPlayersActionBillboard()
+    self:__AddWinnerBillboard(winners)
 
     self.Locked = true
 
     -- TODO: ehh, do we remove it this quick? players can't view their hand anymore.
     -- Storages.Memory.Matches.Remove(self)
+end
+
+function Match:__RemoveAllPlayersActionBillboard()
+    for _, _player in ipairs(self.Table.Players) do
+        local character = _player.Player.Character or _player.Player.CharacterAdded:Wait()
+        local head: Head = character:WaitForChild("Head")
+        local wrapper: Frame = head:WaitForChild("Billboard").Frame.Wrapper
+
+        local actionLabel = wrapper:FindFirstChild("Action")
+        if actionLabel then actionLabel:Destroy() end
+    end
+end
+
+function Match:__AddWinnerBillboard(winners)
+    local draw = #winners > 1
+    local text = draw and "DRAW" or "WINNER"
+
+    for _, w in ipairs(winners) do
+        local character = w.Player.Character or w.Player.CharacterAdded:Wait()
+        local head: Head = character:WaitForChild("Head")
+        local wrapper: Frame = head:WaitForChild("Billboard").Frame.Wrapper
+
+        -- TODO: rename label other than Action
+        local label = Instance.new("TextLabel", wrapper)
+        label.Name = "Action"
+        label.BackgroundTransparency = 1
+        label.Size = UDim2.fromScale(1, 1)
+        label.TextScaled = true
+        label.Text = text
+    end
 end
 
 function Match:_Turn(): {[number]: Player}
@@ -173,14 +197,7 @@ function Match:_TurnBetting()
         return
     end
 
-    for _, _player in ipairs(self.Table.Players) do
-        local character = _player.Player.Character or _player.Player.CharacterAdded:Wait()
-        local head: Head = character:WaitForChild("Head")
-        local wrapper: Frame = head:WaitForChild("Billboard").Frame.Wrapper
-
-        local actionLabel = wrapper:FindFirstChild("Action")
-        if actionLabel then actionLabel:Destroy() end
-    end
+    self:__RemoveAllPlayersActionBillboard()
 
     for _, _player in ipairs(self.Table.Players) do
         if _player.Status ~= "Alive" then continue end
@@ -435,124 +452,6 @@ function Match:_TurnShowdown()
         return {}
     end
 
-    local function isHandEqual(handA, handB): boolean
-        local rankA, rankB = handA.Rank, handB.Rank
-
-        if rankA.Tier ~= rankB.Tier then
-            return rankA.Tier > rankB.Tier
-        end
-
-        assert(#rankA.Cards == #rankB.Cards)
-        local n = #rankA.Cards
-
-        for i = 1, n do
-            local a = rankA.Cards[i]:RankAsNumeric()
-            local b = rankB.Cards[i]:RankAsNumeric()
-
-            if a ~= b then
-                return false
-            end
-        end
-
-        -- NOTE: get cards that's unused for rankings
-        local function kickers(hand, used)
-            local _used = {}
-            for _, c in ipairs(used) do
-                _used[c] = true
-            end
-
-            local _kickers = {}
-            for _, c in ipairs(hand.Cards) do
-                if not _used[c] then
-                    table.insert(_kickers, c)
-                end
-            end
-
-            -- NOTE: sadly, we need to sort it.
-            table.sort(_kickers, function(a, b)
-                return a:RankAsNumeric() > b:RankAsNumeric()
-            end)
-
-            return _kickers
-        end
-
-        local kickersA = kickers(handA.Hand, rankA.Cards)
-        local kickersB = kickers(handB.Hand, rankB.Cards)
-
-        assert(#kickersA == #kickersB)
-        local n = #kickersA
-
-        for i = 1, n do
-            local a = kickersA[i]:RankAsNumeric()
-            local b = kickersB[i]:RankAsNumeric()
-
-            if a ~= b then
-                return false
-            end
-        end
-
-        return true
-    end
-
-        local function isHandBetter(handA, handB): boolean
-        local rankA, rankB = handA.Rank, handB.Rank
-
-        if rankA.Tier ~= rankB.Tier then
-            return rankA.Tier > rankB.Tier
-        end
-
-        assert(#rankA.Cards == #rankB.Cards)
-        local n = #rankA.Cards
-
-        for i = 1, n do
-            local a = rankA.Cards[i]:RankAsNumeric()
-            local b = rankB.Cards[i]:RankAsNumeric()
-
-            if a ~= b then
-                return a > b
-            end
-        end
-
-        -- NOTE: get cards that's unused for rankings
-        local function kickers(hand, used)
-            local _used = {}
-            for _, c in ipairs(used) do
-                _used[c] = true
-            end
-
-            local _kickers = {}
-            for _, c in ipairs(hand.Cards) do
-                if not _used[c] then
-                    table.insert(_kickers, c)
-                end
-            end
-
-            -- NOTE: sadly, we need to sort it.
-            table.sort(_kickers, function(a, b)
-                return a:RankAsNumeric() > b:RankAsNumeric()
-            end)
-
-            return _kickers
-        end
-
-        local kickersA = kickers(handA.Hand, rankA.Cards)
-        local kickersB = kickers(handB.Hand, rankB.Cards)
-
-        assert(#kickersA == #kickersB)
-        local n = #kickersA
-
-        for i = 1, n do
-            local a = kickersA[i]:RankAsNumeric()
-            local b = kickersB[i]:RankAsNumeric()
-
-            if a ~= b then
-                return a > b
-            end
-        end
-
-        return false -- NOTE: ties
-    end
-
     local hands = {}
     for _, _player in ipairs(self.Table.Players) do
         if _player.Status == "Folded" then continue end
@@ -564,12 +463,12 @@ function Match:_TurnShowdown()
     end
 
     table.sort(hands, function(a, b)
-        return isHandBetter(a, b)
+        return a.Hand:Beats(b.Hand, {_Other = b.Rank, _Our = a.Rank})
     end)
 
     local winners = {hands[1]}
     for i = 2, #hands do
-        if not isHandEqual(hands[i], winners[1]) then
+        if not hands[i].Hand:Equal(winners[1].Hand, {_Other = winners[1].Rank, _Our = hands[i].Rank}) then
             break
         end
 
