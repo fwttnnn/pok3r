@@ -2,6 +2,7 @@
 local Match = {}
 Match.__index = Match
 
+local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 local Modules = ServerStorage:WaitForChild("Modules")
 
@@ -10,6 +11,10 @@ local Table = require(Modules.Poker.Table)
 
 local Timer = require(Modules.Common.Timer)
 local Queue = require(Modules.Common.Queue)
+
+local Native = {
+    Player = require(Modules.Native.Player),
+}
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Events = {
@@ -39,17 +44,33 @@ local Storages = {
 }
 
 function Match.new(players: {[number]: Player})
-    return setmetatable({
+    assert(#players <= 1, "are you 5?")
+
+    local match = setmetatable({
         Table = Table.new(players),
         Turns = Queue.new(),
         Timer = Timer.new(),
-        Last = #players, -- last player to move
-        -- TODO: as enum
-        Status = "Going"
+        -- TODO: as enum.
+        Status = "Going",
+
+        -- NOTE: the last player to move.
+        __last = #players,
+        -- NOTE: player removing connection.
+        __conn = nil,
     }, Match)
+
+    -- TODO(priority): disconnect this connection. (maybe make something like :Destroy())?
+    match.__conn = Players.PlayerRemoving:Connect(function(player: Player)
+        match.Table:RemovePlayer(player)
+    end)
+
+    return match
 end
 
 function Match:Start()
+    -- cannot happen, but idk..
+    if #self.Table.Players <= 1 then return end
+
     self.Turns = Queue.new()
     self.Turns:Push({Type = "DP"})
     self.Turns:Push({Type = "BT"})
@@ -90,30 +111,40 @@ end
 function Match:__UpdatePlayerIconToJoin(player: Player)
     -- TODO: get billboard dynamically.
     local billboard = workspace.Development.Board.Billboard
-
     local frame: Frame = billboard.Frame[player.UserId]
+
+    if not frame or not frame.ImageLabel or not frame.ImageLabel.UIStroke then return end
+
     frame.ImageLabel.UIStroke.Color = Color3.fromRGB(0, 255, 0) -- NOTE: green
 end
 
 function Match:__UpdatePlayerIconToQuit(player: Player)
     -- TODO: get billboard dynamically.
     local billboard = workspace.Development.Board.Billboard
-
     local frame: Frame = billboard.Frame[player.UserId]
+
+    if not frame or not frame.ImageLabel or not frame.ImageLabel.UIStroke then return end
+
     frame.ImageLabel.UIStroke.Color = Color3.fromRGB(255, 0, 0) -- NOTE: red
 end
 
 function Match:__RemovePlayerIcons()
+    -- TODO: get billboard dynamically.
     local billboard = workspace.Development.Board.Billboard
     billboard.Frame.Visible = false
 
     for _, p in (self.Table.Players) do
-        billboard.Frame[p.Player.UserId]:Destroy()
+        local frame: Frame = billboard.Frame[p.Player.UserId]
+        if not frame then continue end
+
+        frame:Destroy()
     end
 end
 
 -- NOTE: prompt rematch to all players.
 function Match:Rematch()
+    if #self.Table.Players <= 1 then return end
+
     for _, p in (self.Table.Players) do
         Events.Match.Rematch.Act:FireClient(p.Player)
     end
@@ -316,7 +347,7 @@ function Match:_BuildQueue(): Queue
     local queue = Queue.new()
 
     for i = 1, #self.Table.Players do
-        local p = self.Table.Players[((self.Last + i - 1) % #self.Table.Players) + 1]
+        local p = self.Table.Players[((self.__last + i - 1) % #self.Table.Players) + 1]
         queue:Push(p)
     end
 
@@ -367,6 +398,7 @@ function Match:_TurnBetting()
         return true
     end
 
+    -- NOTE: funny, this also checks if there's only 1 player left.
     local function isEveryoneExceptOneFolded(): number
         local count = 0
 
@@ -525,6 +557,12 @@ function Match:_TurnBetting()
             },
         }
 
+        local function __disconnect()
+            if connections.Act then               connections.Act:Disconnect() end
+            if connections.Timer.Progression then connections.Timer.Progression:Disconnect() end
+            if connections.Timer.Finished then    connections.Timer.Finished:Disconnect() end
+        end
+
         connections.Act = Events.Match.Turn.Betting.Act.OnServerEvent:Connect(function(player: Player, action)
             if player ~= _player.Player then return end
 
@@ -544,7 +582,10 @@ function Match:_TurnBetting()
         end)
         
         connections.Timer.Finished = self.Timer.Finished:Connect(function()
-            print("[timeout] auto-act for " .. _player.Player.DisplayName)
+            if Native.Player.Disconnected(_player.Player) then
+                actionHandlers["FOLD"]({ Type = "FOLD", Amount = nil })
+                return
+            end
 
             local actions = {"CHECK", "CALL", "FOLD"}
             for _, action in ipairs(actions) do
@@ -565,10 +606,25 @@ function Match:_TurnBetting()
         local timerProgressBar = self:__AddTimerBillboard(_player.Player)
 
         connections.Timer.Progression = self.Timer.Progression:Connect(function(progress: number)
+            if Native.Player.Disconnected(_player.Player) then
+                self.Timer:Stop()
+                self.Timer:Reset()
+
+                -- just to continue off.
+                acted:Fire()
+                return
+            end
+
+            if not timerProgressBar then return end
             timerProgressBar.Size = UDim2.fromScale(progress, 1)
         end)
 
+        if Native.Player.Disconnected(_player.Player) then
+            __disconnect()
+            continue
+        end
         Events.Match.Turn.Betting.Act:FireClient(_player.Player, _player.Health)
+
         self.Timer:Reset()
         self.Timer:Start(20)
 
@@ -579,6 +635,12 @@ function Match:_TurnBetting()
         self.Timer:Stop()
         self.Timer:Reset()
 
+        -- NOTE: check from `connections.Timer`
+        if Native.Player.Disconnected(_player.Player) then
+            __disconnect()
+            continue
+        end
+
         self:__RemoveTimerBillboard(_player.Player)
         self:__AddActionBillboard(_player.Player, lastAction)
 
@@ -587,11 +649,8 @@ function Match:_TurnBetting()
             Events.Match.Turn.Betting.Action:FireClient(p.Player, _player.Player, lastAction)
         end
 
-        connections.Act:Disconnect()
-        connections.Timer.Progression:Disconnect()
-        connections.Timer.Finished:Disconnect()
-
-        self.Last = self.Table:PlayerIndex(_player.Player)
+        __disconnect()
+        self.__last = self.Table:PlayerIndex(_player.Player)
     end
 
     -- NOTE: should jump into showdown

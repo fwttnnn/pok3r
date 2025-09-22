@@ -102,6 +102,13 @@ function Table:GetPlayer(player: Player)
     return nil
 end
 
+function Table:RemovePlayer(player: Player)
+    local index = self:PlayerIndex(player)
+    if not index then return end
+
+    table.remove(self.Players, index)
+end
+
 function Table:DealToCommunity()
     local card: Card = self.Deck:Pop()
     self.Cards.Community:Push(card)
