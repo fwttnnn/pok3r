@@ -576,6 +576,7 @@ function Match:_TurnBetting()
         
         connections.Timer.Finished = self.Timer.Finished:Connect(function()
             if Native.Player.Disconnected(_player.Player) then
+                -- NOTE: does not matter anyway..
                 actionHandlers["FOLD"]({ Type = "FOLD", Amount = nil })
                 return
             end
