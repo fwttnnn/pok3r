@@ -30,7 +30,7 @@ character.ChildAdded:Connect(function(child)
     local middleOffset = (totalCards - 1) * cardSpacing / 2
 
     for i, card in ipairs(cards) do
-        rightArm.Handle[i].Face.Texture = Cards[card.Suit][card.Rank].Face.Texture
+        rightArm.Handle:WaitForChild(tostring(i)).Face.Texture = Cards[card.Suit][card.Rank].Face.Texture
 
         local xOffset = (i - 1) * cardSpacing - middleOffset
         local part = Cards[card.Suit][card.Rank]:Clone()

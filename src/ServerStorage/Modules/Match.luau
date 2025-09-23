@@ -84,174 +84,11 @@ function Match:Start()
     self:__RemoveAllPlayersActionBillboard()
     self:__AddWinnerBillboard(winners)
 
+    task.wait(3.2)
+    self:__RemoveAllPlayersActionBillboard()
+
     -- TODO: ehh, do we remove it this quick? players can't view their hand anymore.
     -- Storages.Memory.Matches.Remove(self)
-end
-
-function Match:Reset(players: {[number]: Player})
-    self.Table:Destroy()
-
-    self.Table = Table.new(players)
-    self.Status = "Going"
-    self.__last = #players
-end
-
-function Match:__AddPlayerIcons()
-    -- TODO: get billboard dynamically.
-    local billboard = workspace.Development.Board.Billboard
-    billboard.Frame.Visible = true
-
-    for _, p in (self.Table.Players) do
-        local frame: Frame = ReplicatedStorage.Icon:Clone()
-        local image: ImageLabel = frame.ImageLabel
-
-        local icon: string = Storages.Memory.Players.Get(p.Player).Icon
-        image.Image = icon
-
-        frame.Name = p.Player.UserId
-        frame.Parent = billboard.Frame
-    end
-end
-
-function Match:__UpdatePlayerIconToJoin(player: Player)
-    -- TODO: get billboard dynamically.
-    local billboard = workspace.Development.Board.Billboard
-    local frame: Frame = billboard.Frame[player.UserId]
-
-    if not frame or not frame.ImageLabel or not frame.ImageLabel.UIStroke then return end
-
-    frame.ImageLabel.UIStroke.Color = Color3.fromRGB(0, 255, 0) -- NOTE: green
-end
-
-function Match:__UpdatePlayerIconToQuit(player: Player)
-    -- TODO: get billboard dynamically.
-    local billboard = workspace.Development.Board.Billboard
-    local frame: Frame = billboard.Frame[player.UserId]
-
-    if not frame or not frame.ImageLabel or not frame.ImageLabel.UIStroke then return end
-
-    frame.ImageLabel.UIStroke.Color = Color3.fromRGB(255, 0, 0) -- NOTE: red
-end
-
-function Match:__RemovePlayerIcons()
-    -- TODO: get billboard dynamically.
-    local billboard = workspace.Development.Board.Billboard
-    billboard.Frame.Visible = false
-
-    for _, p in (self.Table.Players) do
-        local frame: Frame = billboard.Frame[p.Player.UserId]
-        if not frame then continue end
-
-        frame:Destroy()
-    end
-end
-
--- NOTE: prompt rematch to all players.
-function Match:Rematch(): {[number]: Player}
-    if #self.Table.Players <= 1 then return end
-
-    for _, p in (self.Table.Players) do
-        Events.Match.Rematch.Act:FireClient(p.Player)
-    end
-
-    self:__RemoveAllPlayersActionBillboard()
-    self:__AddPlayerIcons()
-
-    self.Timer:Stop()
-    self.Timer:Reset()
-    self.Timer:Start(30) -- NOTE: 30 seconds.
-
-    local _players  = {
-        Joins = {},
-        Quits = {},
-    }
-
-    local function everyoneActed(): boolean
-        for _, p in ipairs(self.Table.Players) do
-            local id = p.Player.UserId
-            local acted = _players.Joins[id] or _players.Quits[id]
-
-            if not acted then
-                return false
-            end
-        end
-
-        return true
-    end
-
-    local ready = Instance.new("BindableEvent")
-    local connections = {
-        -- TODO: rename to accept/decline.
-        Join = nil,
-        Quit = nil,
-        Timer = {
-            Progression = nil,
-            Finished = nil,
-        },
-    }
-
-    connections.Join = Events.Match.Rematch.Join.OnServerEvent:Connect(function(player: Player)
-        _players.Joins[player.UserId] = true
-        self:__UpdatePlayerIconToJoin(player)
-        Events.Match.Rematch.Acted:FireClient(player)
-
-        if everyoneActed() then
-            ready:Fire()
-        end
-    end)
-
-    connections.Quit = Events.Match.Rematch.Quit.OnServerEvent:Connect(function(player: Player)
-        _players.Quits[player.UserId] = true
-        self:__UpdatePlayerIconToQuit(player)
-        Events.Match.Rematch.Acted:FireClient(player)
-
-        if everyoneActed() then
-            ready:Fire()
-        end
-    end)
-
-    connections.Timer.Progression = self.Timer.Progression:Connect(function(progress: number)
-        -- UDim2.fromScale(progress, 1)
-    end)
-
-    connections.Timer.Finished = self.Timer.Finished:Connect(function()
-        for _, p in ipairs(self.Table.Players) do
-            local id = p.Player.UserId
-            local acted = _players.Joins[id] or _players.Quits[id]
-
-            if not acted then
-                _players.Quits[id] = true
-                self:__UpdatePlayerIconToQuit(p.Player)
-                Events.Match.Rematch.Acted:FireClient(p.Player)
-            end
-        end
-
-        ready:Fire()
-    end)
-
-    -- NOTE: blocking, waiting for all players to ready.
-    ready.Event:Wait()
-
-    self.Timer:Stop()
-    self.Timer:Reset()
-
-    connections.Join:Disconnect()
-    connections.Quit:Disconnect()
-    connections.Timer.Progression:Disconnect()
-    connections.Timer.Finished:Disconnect()
-
-    task.wait(2)
-    self:__RemovePlayerIcons()
-
-    local _playersJoined = {}
-    for id, _ in pairs(_players.Joins) do
-        local p = self.Table:Get({UserId = id})
-        if not p then continue end
-
-        table.insert(_playersJoined, p.Player)
-    end
-
-    return _playersJoined
 end
 
 function Match:__GetPlayerBillboardWrapper(player: Player): Frame
@@ -309,7 +146,7 @@ end
 
 function Match:__RemoveTimerBillboard(player: Player)
     local wrapper = self:__GetPlayerBillboardWrapper(player)
-    local timerWrapper: Frame = wrapper.Timer
+    local timerWrapper: Frame = wrapper:FindFirstChild("Timer")
 
     if timerWrapper then
         timerWrapper:Destroy()
@@ -618,7 +455,7 @@ function Match:_TurnBetting()
         self:__RemoveActionBillboard(_player.Player)
         local timerProgressBar = self:__AddTimerBillboard(_player.Player)
 
-        connections.Timer.Progression = self.Timer.Progression:Connect(function(progress: number)
+        connections.Timer.Progression = self.Timer.Progression.Tick:Connect(function(progress: number)
             if Native.Player.Disconnected(_player.Player) then
                 self.Timer:Stop()
                 self.Timer:Reset()

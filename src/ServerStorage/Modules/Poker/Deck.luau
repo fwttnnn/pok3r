@@ -4,12 +4,12 @@ Deck.__index = Deck
 
 function Deck.new()
     -- TODO(priority): this clones a card, we need the pos.
-    local template: Part = workspace.Development.Board.DECKEXAMPLE
+    local template: Part = workspace.Development.Tables.Board.DECKEXAMPLE
     local part: Part = template:Clone()
 
     part.Name = "Deck"
     part.CanQuery = true
-    part.Parent = workspace.Development.Board
+    part.Parent = workspace.Development.Tables.Board
 
     return setmetatable({
         Part = part,

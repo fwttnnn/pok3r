@@ -4,7 +4,8 @@
         "$className": "DataModel",
         "$ignoreUnknownInstances": true,
         "Workspace": {
-            "$path": "src/Workspace.rbxm"
+            "$path": "src/Workspace.rbxm",
+            "$ignoreUnknownInstances": true
         },
         "Lighting": {
             "$path": "src/Lighting.rbxm",

@@ -4,7 +4,11 @@ Timer.__index = Timer
 
 function Timer.new()
     local events = {
-        Progression = Instance.new("BindableEvent"),
+        -- Progression = Instance.new("BindableEvent"),
+        Progression = {
+            Timid = Instance.new("BindableEvent"), -- fires every 1 second
+            Tick  = Instance.new("BindableEvent"), -- fires every 0.25 second
+        },
         Finished = Instance.new("BindableEvent"),
     }
 
@@ -13,7 +17,10 @@ function Timer.new()
 
         -- NOTE: somehow if we named these events the same as `Events.Timer` (deleted now), it gets
         --       replaced, lmao what a language.
-        Progression = events.Progression.Event,
+        Progression = {
+            Timid = events.Progression.Timid.Event,
+            Tick  = events.Progression.Tick.Event,
+        },
         Finished = events.Finished.Event,
 
         Running = false,
@@ -24,36 +31,45 @@ end
 
 function Timer:Start(duration)
     if self.Running then
-        warn("Warning: timer could not start again as it is already running.")
+        warn("Timer is already running.")
         return
     end
 
     self.Running = true
-    self.Duration = duration
     self.StartTime = tick()
 
+    local nextTick = 0.25
+    local nextTimid = 0
+
     task.spawn(function()
-        local lastUpdate = 0
-
-        while self.Running and tick() - self.StartTime < duration do
-            task.wait()
-
+        while self.Running do
             local elapsed = tick() - self.StartTime
-            local alpha = elapsed / duration -- 0 -> 1 progress
 
-            if elapsed - lastUpdate >= .25 then
-                self.Events.Progression:Fire(1 - alpha) -- 1 -> 0 progress
-
-                lastUpdate = elapsed
+            if elapsed >= duration then
+                break
             end
+
+            -- Tick every 0.25s
+            if elapsed >= nextTick then
+                self.Events.Progression.Tick:Fire(1 - elapsed / duration)
+                nextTick = nextTick + 0.25
+            end
+
+            -- Timid every 1s
+            if elapsed >= nextTimid then
+                local remaining = math.ceil(duration - elapsed)
+                self.Events.Progression.Timid:Fire(remaining)
+                nextTimid = nextTimid + 1
+            end
+
+
+            task.wait(0.05) -- small wait to reduce CPU usage
         end
 
-        -- NOTE: stopped by other script, we don't want to fire finished.
         if not self.Running then return end
 
         self:Stop()
         self:Reset()
-
         self.Events.Finished:Fire()
     end)
 end

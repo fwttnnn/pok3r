@@ -44,7 +44,7 @@ function Table.new(players: {[number]: Player})
     end
     deck:Shuffle()
 
-    local _board = workspace.Development.Board
+    local _board = workspace.Development.Tables.Board
     local inner = Instance.new("Part")
     inner.Name = "Gugugaga"
     inner.Color = Color3.fromRGB(200, 0, 100)
@@ -61,7 +61,8 @@ function Table.new(players: {[number]: Player})
     outer.Position = inner.Position
     outer.Parent = _board
 
-    outer.Color = Color3.fromRGB(202, 191, 163) -- beige
+    -- outer.Color = Color3.fromRGB(202, 191, 163) -- beige
+    outer.Color = Color3.fromRGB(196, 40, 28) -- beige
     outer.Material = Enum.Material.Concrete
 
     local union = outer:SubtractAsync({inner})
@@ -71,6 +72,10 @@ function Table.new(players: {[number]: Player})
 
     inner.Parent = union
     outer:Destroy()
+
+    -- 0 TO DEBUG
+    inner.Transparency = 1
+    union.Transparency = 1
 
     return setmetatable({
         Players = _players,
@@ -85,11 +90,22 @@ end
 
 -- TODO: this *should* destroy the whole board, currently, it doesn't.
 function Table:Destroy()
-    local _board = workspace.Development.Board
+    local _board = workspace.Development.Tables.Board
 
     _board.Deck:Destroy()
     _board.CommunityCardsUnion.Gugugaga:Destroy()
     _board.CommunityCardsUnion:Destroy()
+end
+
+function Table:Add(player: Player)
+    table.insert(self.Players, {
+        Id = player.UserId,
+        Player = player,
+        -- TODO: make this an enum
+        Status = "Waiting",
+        Health = 100,
+        Hand = Hand.new(), 
+    })
 end
 
 function Table:Get(player: Player)
@@ -117,7 +133,7 @@ function Table:Deal(player: Player?)
             local card: Card = self.Deck:Pop()
             self.Cards.Community:Push(card)
 
-            local _board = workspace.Development.Board
+            local _board = workspace.Development.Tables.Board
             local inner = _board.CommunityCardsUnion.Gugugaga
             
             local nCards = #self.Cards.Community.Cards
@@ -218,7 +234,7 @@ function Table:Deal(player: Player?)
             local card = self.Deck:Pop()
 
             -- TODO: assign and get the player's seat
-            local _board = workspace.Development.Board
+            local _board = workspace.Development.Tables.Board
             local seat = nil
 
             local pos: Vector3 = _board.CARDLINE1.Position

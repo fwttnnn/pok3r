@@ -23,7 +23,11 @@ function Storage.Set(player: Player, key: string, val)
     Storage[player.UserId][key] = val
 end
 
-function Storage.Load(player: Player)
+function Storage.Load(player: Player, reload: boolean)
+    if not reload and Storage[player.UserId] then
+        return Storage[player.UserId]
+    end
+
     local success, url = pcall(function()
         local id = player.UserId
         if id < 0 then id = 1531539874 end -- NOTE: on test
