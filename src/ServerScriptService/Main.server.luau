@@ -71,6 +71,21 @@ for _, t in ipairs(tables:GetChildren()) do
         end
     end
 
+    Players.PlayerRemoving:Connect(function(player: Player)
+        __RemovePlayerIcon(player)
+        table.remove(players, _table.index(players, function(p) return p == player end))
+        local empty = #players == 0
+
+        if empty then
+            if not match then
+                __BillboardSetInvisible()
+            end
+
+            timer:Stop()
+            timer:Reset()
+        end
+    end)
+
     timer.Progression.Timid:Connect(function(sec)
         if match then return end
         print("match starting in:", sec)
@@ -161,10 +176,7 @@ for _, t in ipairs(tables:GetChildren()) do
             local player = game.Players:GetPlayerFromCharacter(humanoid.Parent)
             if not player then return end
             
-            if not match then
-                __RemovePlayerIcon(player)
-            end
-
+            __RemovePlayerIcon(player)
             table.remove(players, _table.index(players, function(p) return p == player end))
             local empty = #players == 0
 
