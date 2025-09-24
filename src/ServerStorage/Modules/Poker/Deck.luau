@@ -8,11 +8,8 @@ local Cards = Objects.Cards
 
 function Deck.new()
     -- TODO(priority): this clones a card, we need the pos.
-    local template: Part = workspace.Development.Tables.Board.DECKEXAMPLE
+    local template: Part = workspace.Development.Tables.Board._Templates.Deck
     local part: Part = template:Clone()
-
-    part.Decal:Destroy()
-    part.Face:Destroy()
 
     part.Name = "Deck"
     part.CanQuery = true
@@ -80,12 +77,8 @@ function Deck:Pop(): Card
         error("Deck is empty.")
     end
 
-    print(self.Part)
     local _card = self.Part:FindFirstChild(tostring(#self.Cards))
-    if card then 
-        print("A")
-        _card:Destroy()
-    end
+    if _card then _card:Destroy() end
 
     return table.remove(self.Cards)
 end

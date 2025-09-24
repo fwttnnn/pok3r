@@ -46,27 +46,27 @@ function Table.new(players: {[number]: Player})
 
     local _board = workspace.Development.Tables.Board
     local inner = Instance.new("Part")
-    inner.Name = "Gugugaga"
+    inner.Name = "Line"
     inner.Color = Color3.fromRGB(200, 0, 100)
     inner.Transparency = 1
     inner.Anchored = true
-    inner.Position = _board.CommunityCardsLine.Position
+    inner.Position = _board._Templates.Community.Position
     inner.Rotation = Vector3.new(0, -180, 0)
     inner.Size = Vector3.new((Cards.Blank.Size.X + 0.03) * 5, 0, Cards.Blank.Size.Z + 0.05)
 
     local outer = Instance.new("Part")
-    outer.Name = "outer"
+    outer.Name = "Outer"
     outer.Anchored = true
     outer.Size = inner.Size + Vector3.new(0.05, 0, 0.05)
     outer.Position = inner.Position
-    outer.Parent = _board
+    outer.Parent = _board._Templates.Community
 
     -- outer.Color = Color3.fromRGB(202, 191, 163) -- beige
     outer.Color = Color3.fromRGB(196, 40, 28) -- beige
     outer.Material = Enum.Material.Concrete
 
     local union = outer:SubtractAsync({inner})
-    union.Name = "CommunityCardsUnion"
+    union.Name = "Community"
     union.Position -= Vector3.new(0, 0.0007, 0) -- NOTE: so the lines goes inside the board a little
     union.Parent = _board
 
@@ -93,8 +93,8 @@ function Table:Destroy()
     local _board = workspace.Development.Tables.Board
 
     _board.Deck:Destroy()
-    _board.CommunityCardsUnion.Gugugaga:Destroy()
-    _board.CommunityCardsUnion:Destroy()
+    _board.Community.Line:Destroy()
+    _board.Community:Destroy()
 end
 
 function Table:Add(player: Player)
@@ -134,7 +134,7 @@ function Table:Deal(player: Player?)
             self.Cards.Community:Push(card)
 
             local _board = workspace.Development.Tables.Board
-            local inner = _board.CommunityCardsUnion.Gugugaga
+            local inner = _board.Community.Line
 
             local _blank = Cards.Blank:Clone()
             
@@ -147,7 +147,7 @@ function Table:Deal(player: Player?)
             _blank.Anchored = true
             _blank.Parent = inner
 
-            _blank.Position = _board.DECKEXAMPLE.Position
+            _blank.Position = self.Deck.Part:FindFirstChild("1").Position
             -- _blank.Rotation = Vector3.new(0, -180, 0)
             _blank.Rotation = Vector3.new(0, 90, 0)
 
@@ -159,7 +159,7 @@ function Table:Deal(player: Player?)
             local tween = TweenService:Create(_blank, tweenInfo, { Position = targetPos, Rotation = Vector3.new(0, 0, 0) })
 
             tween:Play()
-            workspace.Invisible.Sound:Play()
+            workspace.Invisible.SFX.Card.Slide:Play()
 
             tween.Completed:Once(function()
                 local billboard = Instance.new("BillboardGui")
@@ -249,7 +249,7 @@ function Table:Deal(player: Player?)
             _blank.Parent = line
 
             local pos: Vector3 = line.Position
-            _blank.CFrame = _board.DECKEXAMPLE.CFrame
+            _blank.CFrame = self.Deck.Part:FindFirstChild("1").CFrame
 
             local nCards = #_player.Hand.Cards
             local cardSpacing = _blank.Size.X * 0.2
@@ -272,7 +272,7 @@ function Table:Deal(player: Player?)
                 tweenT2:Play()
             end)
 
-            workspace.Invisible.Sound:Play()
+            workspace.Invisible.SFX.Card.Slide:Play()
 
             _player.Hand:Push(card)
         end,
