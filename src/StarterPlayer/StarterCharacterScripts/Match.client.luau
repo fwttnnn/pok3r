@@ -233,34 +233,3 @@ Events.Match.Turn.Betting.Started.OnClientEvent:Connect(function()
 
     buttonLayouts.Default()
 end)
-
-local joinButton = PlayerGui.ScreenGui.Join.Join
-local quitButton = PlayerGui.ScreenGui.Quit.Quit
-
-joinButton.MouseButton1Click:Connect(function()
-    Events.Match.Rematch.Join:FireServer()
-end)
-
-quitButton.MouseButton1Click:Connect(function()
-    Events.Match.Rematch.Quit:FireServer()
-end)
-
-Events.Match.Rematch.Act.OnClientEvent:Connect(function()
-    joinButton.Active = true
-    joinButton.Interactable = true
-    joinButton.Parent.Visible = true
-
-    quitButton.Active = true
-    quitButton.Interactable = true
-    quitButton.Parent.Visible = true
-end)
-
-Events.Match.Rematch.Acted.OnClientEvent:Connect(function()
-    joinButton.Active = false
-    joinButton.Interactable = false
-    joinButton.Parent.Visible = false
-
-    quitButton.Active = false
-    quitButton.Interactable = false
-    quitButton.Parent.Visible = false
-end)
