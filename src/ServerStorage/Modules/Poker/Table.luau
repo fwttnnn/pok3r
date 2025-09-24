@@ -135,26 +135,28 @@ function Table:Deal(player: Player?)
 
             local _board = workspace.Development.Tables.Board
             local inner = _board.CommunityCardsUnion.Gugugaga
+
+            local _blank = Cards.Blank:Clone()
             
             local nCards = #self.Cards.Community.Cards
-            local slotWidth = card.Part.Size.X + 0.03
+            local slotWidth = _blank.Size.X + 0.03
 
-            card.Part.Face.Texture = Cards.Poker[card.Suit][card.Rank].Face.Texture
-            card.Part.Face.Transparency = 0
+            _blank.Face.Texture = Cards.Poker[card.Suit][card.Rank].Face.Texture
+            _blank.Face.Transparency = 0
 
-            card.Part.Anchored = true
-            card.Part.Parent = inner
+            _blank.Anchored = true
+            _blank.Parent = inner
 
-            card.Part.Position = _board.CARDEXAMPLE.Position
-            -- card.Part.Rotation = Vector3.new(0, -180, 0)
-            card.Part.Rotation = Vector3.new(0, 90, 0)
+            _blank.Position = _board.DECKEXAMPLE.Position
+            -- _blank.Rotation = Vector3.new(0, -180, 0)
+            _blank.Rotation = Vector3.new(0, 90, 0)
 
             local leftEdge = inner.Position + Vector3.new(inner.Size.X / 2, 0, 0)
             local targetPos = leftEdge - Vector3.new(slotWidth * (nCards - 1) + (slotWidth / 2), 0, 0)
 
             local TweenService = game:GetService("TweenService")
             local tweenInfo = TweenInfo.new(2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-            local tween = TweenService:Create(card.Part, tweenInfo, { Position = targetPos, Rotation = Vector3.new(0, 0, 0) })
+            local tween = TweenService:Create(_blank, tweenInfo, { Position = targetPos, Rotation = Vector3.new(0, 0, 0) })
 
             tween:Play()
             workspace.Invisible.Sound:Play()
@@ -163,17 +165,17 @@ function Table:Deal(player: Player?)
                 local billboard = Instance.new("BillboardGui")
                 billboard.Size = UDim2.new(1.25, 0, 0.5, 0)
                 billboard.StudsOffsetWorldSpace = Vector3.new(0, .8, 0)
-                billboard.Adornee = card.Part
-                billboard.Parent = card.Part
+                billboard.Adornee = _blank
+                billboard.Parent = _blank
 
-                -- local billboard = Instance.new("Part", card.Part)
+                -- local billboard = Instance.new("Part", _blank)
                 -- billboard.Name = "Billboard"
                 -- billboard.Size = Vector3.new(1, .5, 0.001)
                 -- billboard.Anchored = true
                 -- billboard.Massless = true
                 -- billboard.CanCollide = false
                 -- billboard.Transparency = 1
-                -- billboard.CFrame = card.Part.CFrame + Vector3.new(0, .8, 0)
+                -- billboard.CFrame = _blank.CFrame + Vector3.new(0, .8, 0)
                 -- billboard:SetAttribute("Billboard", true)
 
                 -- local gui = Instance.new("SurfaceGui", billboard)
@@ -231,32 +233,44 @@ function Table:Deal(player: Player?)
         end,
         ["Player"] = function(player: Player)
             local _player = self:Get(player)
+            local _index = self:Index(player)
             local card = self.Deck:Pop()
 
             -- TODO: assign and get the player's seat
             local _board = workspace.Development.Tables.Board
+            local line = _board.Lines:FindFirstChild(tostring(_index))
             local seat = nil
 
-            local pos: Vector3 = _board.CARDLINE1.Position
-            card.Part.Position = _board.CARDEXAMPLE.Position
+            if not line then
+                warn("cannot find line for", _index)
+            end
+
+            local _blank = Cards.Blank:Clone()
+            _blank.Parent = line
+
+            local pos: Vector3 = line.Position
+            _blank.CFrame = _board.DECKEXAMPLE.CFrame
 
             local nCards = #_player.Hand.Cards
-            local cardSpacing = card.Part.Size.X * 0.2
+            local cardSpacing = _blank.Size.X * 0.2
 
             local targetPos = pos + Vector3.new((nCards * cardSpacing), 0, 0)
 
             local TweenService = game:GetService("TweenService")
             local tweenInfo = TweenInfo.new(2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-            local tween = TweenService:Create(card.Part, tweenInfo, { Position = targetPos, Rotation = Vector3.new(0, math.random(60, 120), 180) })
 
-            local tweenT = TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out, 0, false, .6)
-            local tweenT1 = TweenService:Create(card.Part, tweenT, { Transparency = 1 })
-            local tweenT2 = TweenService:Create(card.Part.Decal, tweenT, { Transparency = 1 })
+            local _rot = Vector3.new(_blank.Rotation.X, math.random(0, 120), _blank.Rotation.Y)
+            local tween = TweenService:Create(_blank, tweenInfo, { Position = targetPos, Rotation = _rot })
+
+            local tweenT = TweenInfo.new(.5, Enum.EasingStyle.Sine, Enum.EasingDirection.Out, 0, false, .6)
+            local tweenT1 = TweenService:Create(_blank, tweenT, { Transparency = 1 })
+            local tweenT2 = TweenService:Create(_blank.Decal, tweenT, { Transparency = 1 })
 
             tween:Play()
-
-            tweenT1:Play()
-            tweenT2:Play()
+            tween.Completed:Once(function()
+                tweenT1:Play()
+                tweenT2:Play()
+            end)
 
             workspace.Invisible.Sound:Play()
 

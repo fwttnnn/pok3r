@@ -43,6 +43,7 @@ function Test.TableDealToCommunity()
 
     task.wait(3)
 
+    task.wait(2)
     match.Table:Deal()
     task.wait(2)
     match.Table:Deal()
@@ -60,11 +61,19 @@ function Test.TableDealToPlayers()
 
     local match = Match.new({_p1, _p2})
 
-    task.wait(3)
+    task.wait(2)
 
+    task.wait(1)
+    task.wait(.65)
     match.Table:Deal(_p1)
     task.wait(.65)
     match.Table:Deal(_p1)
+
+    task.wait(1)
+    task.wait(.65)
+    match.Table:Deal(_p2)
+    task.wait(.65)
+    match.Table:Deal(_p2)
 end
 
 function Test.All()

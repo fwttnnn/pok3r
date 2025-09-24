@@ -24,6 +24,9 @@ Players.PlayerAdded:Connect(function(player)
     end)
 end)
 
+-- NOTE: COMMENT ON PROD
+-- if true then return end
+
 local tables: Folder = workspace.Development.Tables
 for _, t in ipairs(tables:GetChildren()) do
     local board: Folder = t
@@ -95,7 +98,7 @@ for _, t in ipairs(tables:GetChildren()) do
         if match then return end
         if #players <= 1 then
             timer:Reset()
-            timer:Start(10)
+            timer:Start(5)
             return
         end
 
@@ -132,7 +135,7 @@ for _, t in ipairs(tables:GetChildren()) do
             end
 
             timer:Reset()
-            timer:Start(10)
+            timer:Start(5)
         end)
     end)
 
@@ -154,7 +157,7 @@ for _, t in ipairs(tables:GetChildren()) do
             if empty then
                 timer:Stop()
                 timer:Reset()
-                timer:Start(10)
+                timer:Start(5)
             end
 
             if not match then

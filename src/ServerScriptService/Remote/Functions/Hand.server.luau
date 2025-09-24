@@ -1,7 +1,9 @@
 --!strict
-local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Objects = ReplicatedStorage:WaitForChild("Objects")
+local Cards = Objects.Cards
 
+local ServerStorage = game:GetService("ServerStorage")
 local Modules = ServerStorage:WaitForChild("Modules")
 local Card = require(Modules.Poker.Card)
 
@@ -31,7 +33,7 @@ function buildCards(handle: Part, cards: {[number]: Card}, cardSpacing: number)
         local angleDeg = arcDegrees / 2 - (i - 1) * (arcDegrees / math.max(#cards - 1, 1))
         local angleRad = math.rad(angleDeg)
 
-        local card = _card.Part:Clone()
+        local card = Cards.Blank:Clone()
         card.Name = i
         card.Anchored = false
         card.CanCollide = false
