@@ -84,7 +84,7 @@ function Match:Start()
     self:__RemoveAllPlayersActionBillboard()
     self:__AddWinnerBillboard(winners)
 
-    task.wait(3.2)
+    task.wait(5)
     self:__RemoveAllPlayersActionBillboard()
 
     -- TODO: ehh, do we remove it this quick? players can't view their hand anymore.
