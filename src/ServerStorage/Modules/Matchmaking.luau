@@ -64,7 +64,7 @@ function Matchmaking.Listen()
 
         if #players ~= #ids then continue end
 
-        local placeId = 100523856012906
+        local placeId = 111691578946103
         local teleportOptions = Instance.new("TeleportOptions")
         teleportOptions.ShouldReserveServer = false -- TODO: check up docs
 
