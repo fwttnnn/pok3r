@@ -59,6 +59,7 @@ function Match.new(players: {[number]: Player})
     }, Match)
 
     -- TODO(priority): disconnect this connection. (maybe make something like :Destroy())?
+    -- TODO(priority): when it's our turn, we can still bet and everything, so.. this is a thing to keep in mind.
     match.__conn = Players.PlayerRemoving:Connect(function(player: Player)
         match.Table:Remove(player)
     end)
@@ -88,9 +89,6 @@ function Match:Start()
 
     task.wait(5)
     self:__RemoveAllPlayersActionBillboard()
-
-    -- TODO: ehh, do we remove it this quick? players can't view their hand anymore.
-    -- Storages.Memory.Matches.Remove(self)
 end
 
 function Match:__GetPlayerBillboardWrapper(player: Player): Frame

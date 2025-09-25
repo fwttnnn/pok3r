@@ -78,7 +78,6 @@ Functions.Hand.Equip.OnServerInvoke = function(player: Player)
     local house = Storages.Memory.Players.Get(player).House
     local suit = (house and house.Name) or "Club"
 
-    -- TODO: make cards visible if we're outside of a match
     local cards = {}
     table.insert(cards, Card.new("5", suit .. 's'))
     table.insert(cards, Card.new("A", suit .. 's'))

@@ -61,16 +61,13 @@ for _, t in ipairs(tables:GetChildren()) do
         _rings[player] = true
         workspace.Invisible.SFX.Bell:Play()
 
-        -- TODO: this should check on players table, cuz other player not in seat can also ring the bell
-        local count = 0
-        for k, v in pairs(_rings) do
-            count += 1
+        for _, p in ipairs(players) do
+            if not _rings[p] then return end
         end
 
-        if count < 2 then return end
         if #players < 2 then return end
-
         if match then return end
+
         _rings = {}
 
         task.spawn(function()

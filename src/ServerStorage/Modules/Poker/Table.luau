@@ -89,7 +89,6 @@ function Table.new(players: {[number]: Player})
     }, Table)
 end
 
--- TODO: this *should* destroy the whole board, currently, it doesn't.
 function Table:Destroy()
     local _board = workspace.Development.Tables.Board
 
@@ -237,7 +236,6 @@ function Table:Deal(player: Player?)
             local _index = self:Index(player)
             local card = self.Deck:Pop()
 
-            -- TODO: assign and get the player's seat
             local _board = workspace.Development.Tables.Board
             local line = _board.Lines:FindFirstChild(tostring(_index))
             local seat = nil
