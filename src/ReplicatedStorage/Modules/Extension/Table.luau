@@ -13,6 +13,35 @@ function _table.filter(tbl: {any}, fn: (any) -> boolean): {any}
     return result
 end
 
+function _table.shift(tbl: {any}, n: number): {any}
+    n = n % #tbl  -- handles n > #tbl
+    if n == 0 then return tbl end
+
+    local last = {}
+    for i = #tbl - n + 1, #tbl do
+        table.insert(last, tbl[i])
+    end
+
+    local saved = {}
+    for i = 1, #tbl - n do
+        table.insert(saved, tbl[i])
+    end
+
+    local count = 1
+
+    for i = 1, #last do
+        tbl[count] = last[i]
+        count += 1
+    end
+
+    for i = 1, #saved do
+        tbl[count] = saved[i]
+        count += 1
+    end
+
+    return tbl
+end
+
 function _table.find(tbl: {any}, fn: (any) -> boolean): any
     for i, v in ipairs(tbl) do
         if fn(v) then

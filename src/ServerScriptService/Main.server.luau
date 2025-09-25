@@ -37,6 +37,7 @@ for _, t in ipairs(tables:GetChildren()) do
 
     local anims = {}
     local players = {}
+    local _ov = {}
 
     local match
 
@@ -77,6 +78,20 @@ for _, t in ipairs(tables:GetChildren()) do
             setModelTransparency(_dealer.Hands.Resting, 0)
 
             for _, p in ipairs(players) do
+                local humanoid = p.Character:FindFirstChild("Humanoid")
+
+                _ov[p] = {
+                    WalkSpeed = humanoid.WalkSpeed,
+                    JumpPower = humanoid.JumpPower,
+                    UseJumpPower = humanoid.UseJumpPower,
+                }
+
+                humanoid.WalkSpeed = 0
+                humanoid.JumpPower = 0
+                humanoid.UseJumpPower = true
+            end
+
+            for _, p in ipairs(players) do
                 Storages.Memory.Players.Load(p)
             end
 
@@ -86,6 +101,14 @@ for _, t in ipairs(tables:GetChildren()) do
             match:Start()
             Storages.Memory.Matches.Remove(match)
 
+            for _, _p in ipairs(match.Table.Players) do
+                local p = _p.Player
+                local humanoid = p.Character:FindFirstChild("Humanoid")
+                humanoid.WalkSpeed = _ov[p].WalkSpeed
+                humanoid.JumpPower = _ov[p].JumpPower
+                humanoid.UseJumpPower = _ov[p].UseJumpPower
+            end
+
             match.Table:Destroy()
             match = nil
             _rings = {}
@@ -93,6 +116,8 @@ for _, t in ipairs(tables:GetChildren()) do
             -- TODO: account for tables that has more players
             local seatsFull = #players == 2
             if seatsFull then
+                _table.shift(players, 1)
+
                 setModelTransparency(_dealer.Hands.Pointing, 0)
                 setModelTransparency(_dealer.Hands.Resting, 1)
 
@@ -171,8 +196,8 @@ for _, t in ipairs(tables:GetChildren()) do
             local empty = #players == 0
             table.insert(players, player)
 
-            local full = #players == 2
-            if full then
+            local seatsFull = #players == 2
+            if seatsFull and not match then
                 _rings = {}
                 setModelTransparency(_dealer.Hands.Pointing, 0)
                 setModelTransparency(_dealer.Hands.Resting, 1)
