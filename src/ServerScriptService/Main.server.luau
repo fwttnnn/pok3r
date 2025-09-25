@@ -60,6 +60,7 @@ for _, t in ipairs(tables:GetChildren()) do
         _rings[player] = true
         workspace.Invisible.SFX.Bell:Play()
 
+        -- TODO: this should check on players table, cuz other player not in seat can also ring the bell
         local count = 0
         for k, v in pairs(_rings) do
             count += 1
@@ -85,18 +86,19 @@ for _, t in ipairs(tables:GetChildren()) do
             match:Start()
             Storages.Memory.Matches.Remove(match)
 
-            -- NOTE: players that is already in the match disconnected,
-            --       and there is no more player on the table to start a new game.
-            if #match.Table.Players == 0 then
-                match.Table:Destroy()
-                match = nil
-                return
-            end
-
-            -- NOTE: there's still players on the table,
-            --       starting the game again, soon.
             match.Table:Destroy()
             match = nil
+            _rings = {}
+
+            -- TODO: account for tables that has more players
+            local seatsFull = #players == 2
+            if seatsFull then
+                setModelTransparency(_dealer.Hands.Pointing, 0)
+                setModelTransparency(_dealer.Hands.Resting, 1)
+
+                local _label = _head.Dialog.Frame.Label
+                Dialog.Show(_label, "Ring the bell..")
+            end
         end)
     end)
 
@@ -196,6 +198,7 @@ for _, t in ipairs(tables:GetChildren()) do
             table.remove(players, _table.index(players, function(p) return p == player end))
             local empty = #players == 0
 
+            _rings = {}
             setModelTransparency(_dealer.Hands.Pointing, 1)
             setModelTransparency(_dealer.Hands.Resting, 0)
 

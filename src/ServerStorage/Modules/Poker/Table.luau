@@ -59,6 +59,7 @@ function Table.new(players: {[number]: Player})
     outer.Anchored = true
     outer.Size = inner.Size + Vector3.new(0.05, 0, 0.05)
     outer.Position = inner.Position
+    outer.Transparency = 1
     outer.Parent = _board._Templates.Community
 
     -- outer.Color = Color3.fromRGB(202, 191, 163) -- beige
