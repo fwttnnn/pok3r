@@ -6,7 +6,8 @@ local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 local Modules = ServerStorage:WaitForChild("Modules")
 
-local Dialog = require(Modules.Dialog)
+local Billboard = require(Modules.Gui.Billboard)
+local Dialog = require(Modules.Gui.Dialog)
 
 local Hand = require(Modules.Poker.Hand)
 local Table = require(Modules.Poker.Table)
@@ -82,92 +83,21 @@ function Match:Start()
     turns:Push({Type = "BT"})
     turns:Push({Type = "SD"})
 
+    for _, p in ipairs(self.Table.Players) do
+        Billboard.Add(p.Player, Billboard.Types.Health)
+    end
+
     local winners = self:_Turn(turns)
 
-    self:__RemoveAllPlayersActionBillboard()
-    self:__AddWinnerBillboard(winners)
+    for _, p in ipairs(self.Table.Players) do
+        Billboard.Remove(p.Player, Billboard.Types.Action)
+        Billboard.Add(nil, Billboard.Types.Winner, winners)
+    end
 
     task.wait(5)
-    self:__RemoveAllPlayersActionBillboard()
-end
-
-function Match:__GetPlayerBillboardWrapper(player: Player): Frame
-    local character = player.Character or player.CharacterAdded:Wait()
-    local head: Head = character:WaitForChild("Head")
-    local wrapper: Frame = head:WaitForChild("Billboard").Frame.Wrapper
-
-    return wrapper
-end
-
-function Match:__AddActionBillboard(player: Player, action)
-    local wrapper: Frame = self:__GetPlayerBillboardWrapper(player)
-
-    local label = Instance.new("TextLabel", wrapper)
-    label.Name = "Action"
-    label.BackgroundTransparency = 1
-    label.Size = UDim2.fromScale(1, 1)
-    label.TextScaled = true
-    label.Text = action.Type
-
-    if action.Amount and action.Type ~= "ALL IN" then
-        label.Text = action.Type .. " " .. action.Amount
-    end
-end
-
-function Match:__RemoveActionBillboard(player: Player)
-    local wrapper: Frame = self:__GetPlayerBillboardWrapper(player)
-    local label: TextLabel = wrapper:FindFirstChild("Action")
-
-    if label then
-        label:Destroy()
-    end
-end
-
-function Match:__RemoveAllPlayersActionBillboard()
-    for _, _player in ipairs(self.Table.Players) do
-        self:__RemoveActionBillboard(_player.Player)
-    end
-end
-
-function Match:__AddTimerBillboard(player: Player): Frame
-    local wrapper = self:__GetPlayerBillboardWrapper(player)
-
-    local timerWrapper = Instance.new("Frame", wrapper)
-    timerWrapper.Name = "Timer"
-    timerWrapper.BackgroundTransparency = 1
-    timerWrapper.Size = UDim2.fromScale(.7, .1)
-
-    local timerProgressBar = Instance.new("Frame", timerWrapper)
-    timerProgressBar.Name = "Bar"
-    timerProgressBar.Size = UDim2.fromScale(1, 1)
-
-    return timerProgressBar
-end
-
-function Match:__RemoveTimerBillboard(player: Player)
-    local wrapper = self:__GetPlayerBillboardWrapper(player)
-    local timerWrapper: Frame = wrapper:FindFirstChild("Timer")
-
-    if timerWrapper then
-        timerWrapper:Destroy()
-    end
-end
-
-function Match:__AddWinnerBillboard(winners)
-    local draw = #winners > 1
-    local text = draw and "DRAW" or "WINNER"
-
-    for _, w in ipairs(winners) do
-        local character = w.Player.Character or w.Player.CharacterAdded:Wait()
-        local head: Head = character:WaitForChild("Head")
-        local wrapper: Frame = head:WaitForChild("Billboard").Frame.Wrapper
-
-        local label = Instance.new("TextLabel", wrapper)
-        label.Name = "Action" -- TODO: rename label other than Action
-        label.BackgroundTransparency = 1
-        label.Size = UDim2.fromScale(1, 1)
-        label.TextScaled = true
-        label.Text = text
+    for _, p in ipairs(self.Table.Players) do
+        Billboard.Remove(p.Player, Billboard.Types.Health)
+        Billboard.Remove(p.Player, Billboard.Types.Winner)
     end
 end
 
@@ -276,9 +206,9 @@ function Match:_TurnBetting()
         return
     end
 
-    self:__RemoveAllPlayersActionBillboard()
-
     for _, _player in ipairs(self.Table.Players) do
+        Billboard.Remove(_player.Player, Billboard.Types.Action)
+
         if _player.Status ~= "Alive" then continue end
         Events.Match.Turn.Betting.Started:FireClient(_player.Player)
     end
@@ -452,8 +382,8 @@ function Match:_TurnBetting()
             Events.Match.Turn.Betting.Acted:FireClient(_player.Player, _player.Health)
         end)
 
-        self:__RemoveActionBillboard(_player.Player)
-        local timerProgressBar = self:__AddTimerBillboard(_player.Player)
+        Billboard.Remove(_player.Player, Billboard.Types.Action)
+        Billboard.Add(_player.Player, Billboard.Types.Timer)
 
         connections.Timer.Progression = self.Timer.Progression.Tick:Connect(function(progress: number)
             if Native.Player.Disconnected(_player.Player) then
@@ -465,8 +395,7 @@ function Match:_TurnBetting()
                 return
             end
 
-            if not timerProgressBar then return end
-            timerProgressBar.Size = UDim2.fromScale(progress, 1)
+            Billboard.Update(_player.Player, Billboard.Types.Timer, progress)
         end)
 
         if Native.Player.Disconnected(_player.Player) then
@@ -492,8 +421,9 @@ function Match:_TurnBetting()
             continue
         end
 
-        self:__RemoveTimerBillboard(_player.Player)
-        self:__AddActionBillboard(_player.Player, lastAction)
+        Billboard.Update(_player.Player, Billboard.Types.Health, _player.Health)
+        Billboard.Remove(_player.Player, Billboard.Types.Timer)
+        Billboard.Add(_player.Player, Billboard.Types.Action, lastAction)
 
         for _, p in ipairs(self.Table.Players) do
             if p.Id == _player.Id then continue end

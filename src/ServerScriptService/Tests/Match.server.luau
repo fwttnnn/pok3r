@@ -4,8 +4,14 @@ local Test = {}
 local ServerStorage = game:GetService("ServerStorage")
 local Modules = ServerStorage:WaitForChild("Modules")
 
+local Billboard = require(Modules.Gui.Billboard)
+
 local Card = require(Modules.Poker.Card)
 local Match = require(Modules.Match)
+
+local Players = game:GetService("Players")
+local me = Players.PlayerAdded:Wait()
+      me.CharacterAdded:Wait()
 
 function Test.IDontKnow()
     local _p1 = {UserId = 1, DisplayName = "A"}
@@ -76,11 +82,19 @@ function Test.TableDealToPlayers()
     match.Table:Deal(_p2)
 end
 
+function Test.BillboardHealth()
+    Billboard.Add(me, Billboard.Types.Health)
+    -- task.wait(2)
+    -- Billboard.Update(player, Billboard.Types.Health, 20)
+end
+
 function Test.All()
     -- TODO: gather all functions (automatically) and fire it all here.
     -- Test.IDontKnow()
     -- Test.TableDealToCommunity()
     -- Test.TableDealToPlayers()
+
+    -- Test.BillboardHealth()
 end
 
 Test.All()

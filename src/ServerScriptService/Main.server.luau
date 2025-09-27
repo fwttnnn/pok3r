@@ -8,7 +8,8 @@ local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 local Modules = ServerStorage:WaitForChild("Modules")
 
-local Dialog = require(Modules.Dialog)
+local Billboard = require(Modules.Gui.Billboard)
+local Dialog = require(Modules.Gui.Dialog)
 
 local Match = require(Modules.Match)
 local Table = require(Modules.Poker.Table)
@@ -23,6 +24,7 @@ local Storages = {
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function(character)
         Storages.Memory.Players.Load(player, true)
+        Billboard.Attach(player)
     end)
 end)
 
