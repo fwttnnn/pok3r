@@ -1,3 +1,5 @@
+if true then return end
+
 local camera = workspace.Camera
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()

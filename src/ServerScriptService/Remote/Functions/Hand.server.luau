@@ -65,6 +65,13 @@ Functions.Hand.Equip.OnServerInvoke = function(player: Player)
     local character = player.Character or player.CharacterAdded:Wait()
     local rightArm = character:FindFirstChild("Right Arm")
 
+    -- NOTE: quick fix for the race condition problem
+    for _, child in ipairs(rightArm:GetChildren()) do
+        if child.Name == "Handle" or child.Name == "Right Arm Motor6D" then
+            child:Destroy()
+        end
+    end
+
     local handle = Instance.new("Part")
     handle.Name = "Handle"
     handle.Parent = rightArm
@@ -112,6 +119,9 @@ Functions.Hand.Unequip.OnServerInvoke = function(player: Player): nil
     local character = player.Character or player.CharacterAdded:Wait()
     local rightArm = character:FindFirstChild("Right Arm")
 
-    rightArm:FindFirstChild("Handle"):Destroy()
-    rightArm:FindFirstChild("Right Arm Motor6D"):Destroy()
+    for _, child in ipairs(rightArm:GetChildren()) do
+        if child.Name == "Handle" or child.Name == "Right Arm Motor6D" then
+            child:Destroy()
+        end
+    end
 end

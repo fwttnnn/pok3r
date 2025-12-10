@@ -1,33 +1,39 @@
---!strict
+-- !strict
+-- NOTE: handles the static/quick buttons
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Objects = ReplicatedStorage:WaitForChild("Objects")
 local Cards = Objects.Cards.Poker
 
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
-local character = script.Parent
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+
+local cardGUI = Player.PlayerGui.ScreenGui.Cards
+
+local character = Player.Character or Player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local animator = humanoid:WaitForChild("Animator")
 
 local equipAnimation = animator:LoadAnimation(ReplicatedStorage.Animations.Hand:FindFirstChild("Equip"))
 
-local player = game.Players.LocalPlayer
-local cardGUI = player.PlayerGui.ScreenGui.Cards
-
 -- NOTE: eh, wtf..
 local __play_gui_cards = false
+local __is_cards_equipped = false
 
 local Functions = {
     Equip = ReplicatedStorage.Functions.Hand.Equip,
     Unequip = ReplicatedStorage.Functions.Hand.Unequip,
 }
 
-character.ChildAdded:Connect(function(child)
-    if not child:IsA("Tool") then return end
-
-    equipAnimation:Play()
+function __handle_equip()
     local cards = Functions.Equip:InvokeServer()
     local rightArm = character:FindFirstChild("Right Arm")
+
+    equipAnimation:Play()
 
     for i, card in ipairs(cards) do
         rightArm.Handle:WaitForChild(tostring(i)).Face.Texture = Cards[card.Suit][card.Rank].Face.Texture
@@ -75,13 +81,11 @@ character.ChildAdded:Connect(function(child)
     end
 
     cardGUI.Visible = true
-end)
+end
 
-character.ChildRemoved:Connect(function(child)
-    if not child:IsA("Tool") then return end
-
-    equipAnimation:Stop()
+function __handle_unequip()
     Functions.Unequip:InvokeServer()
+    equipAnimation:Stop()
 
     cardGUI.Visible = false
     __play_gui_cards = false
@@ -90,4 +94,49 @@ character.ChildRemoved:Connect(function(child)
         if part.Name ~= "Card" then continue end
         part:Destroy()
     end
+end
+
+local Buttons = PlayerGui.ScreenGui:FindFirstChild("Static/Quick")
+Buttons.Cards.Button.MouseButton1Click:Connect(function()
+    if __is_cards_equipped then
+        __handle_unequip()
+        __is_cards_equipped = false
+        return
+    end
+
+    __handle_equip()
+    __is_cards_equipped = true
+end)
+
+UserInputService.InputEnded:Connect(function(input, gameProcessedEvent)
+    if gameProcessedEvent then return end -- checks if another script had already processed the input, so this one gets ignored.
+    if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+
+    local handlers = {
+        [Enum.KeyCode.Q] = function()
+            if __is_cards_equipped then
+                __handle_unequip()
+                __is_cards_equipped = false
+                return
+            end
+
+            __handle_equip()
+            __is_cards_equipped = true
+        end,
+        [Enum.KeyCode.One] = function()
+            if __is_cards_equipped then
+                __handle_unequip()
+                __is_cards_equipped = false
+                return
+            end
+
+            __handle_equip()
+            __is_cards_equipped = true
+        end
+    }
+
+    local handler = handlers[input.KeyCode]
+    if not handler then return end
+
+    handler()
 end)

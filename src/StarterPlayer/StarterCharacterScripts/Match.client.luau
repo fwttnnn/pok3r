@@ -175,6 +175,8 @@ buttonLayouts.Check = function()
 end
 
 buttonLayouts.Call = function()
+    assert(actions.Last.Amount ~= nil)
+
     Buttons.Left.GUI.Text = "CALL"
     setButtonCallback(Buttons.Left, function()
         Events.Match.Turn.Betting.Act:FireServer({Type = "CALL"})
@@ -185,10 +187,8 @@ buttonLayouts.Call = function()
         Events.Match.Turn.Betting.Act:FireServer({Type = "ALL IN"})
     end)
 
-    Buttons.Right.GUI.Text = "RAISE" .. " " .. bet
+    Buttons.Right.GUI.Text = "RAISE TO" .. " " .. actions.Last.Amount + bet
     setButtonCallback(Buttons.Right, function()
-        -- TODO: create a user input
-        assert(actions.Last.Amount ~= nil)
         Events.Match.Turn.Betting.Act:FireServer({Type = "RAISE", Amount = bet})
         bet = 10
     end)
@@ -253,14 +253,12 @@ Events.Match.Turn.Betting.Action.OnClientEvent:Connect(function(player, action)
         return table.concat(buf)
     end
 
-    action.Type = capitalize(action.Type)
-    buttonLayouts[action.Type]()
-
-    if action.Type == "Fold" then
-        return
+    if action.Type ~= "Fold" then
+        actions.Last = action
     end
 
-    actions.Last = action
+    action.Type = capitalize(action.Type)
+    buttonLayouts[action.Type]()
 end)
 
 Events.Match.Turn.Betting.Started.OnClientEvent:Connect(function()
