@@ -53,7 +53,7 @@ for _, t in ipairs(tables:GetChildren()) do
         end
     end
 
-    local _board = workspace.Development.Tables.Board
+    local _board = board -- idk why i did this, but i'll fix it later
     local _dealer = _board.Dealer
     local _head = _dealer.Head
 

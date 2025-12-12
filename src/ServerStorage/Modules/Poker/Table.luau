@@ -95,6 +95,8 @@ function Table.new(players: {[number]: Player})
 end
 
 function Table:Destroy()
+    -- TODO(priority): ehmm, initialize table programmatically plz
+    --                 we've already done it (see Main.server.luau), i'm lazy to pass it here.
     local _board = workspace.Development.Tables.Board
 
     _board.Deck:Destroy()

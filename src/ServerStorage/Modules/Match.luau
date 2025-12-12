@@ -83,6 +83,10 @@ function Match:Start()
     turns:Push({Type = "BT"})
     turns:Push({Type = "SD"})
 
+    -- TODO: see `Table:Destroy`
+    local _label = workspace.Development.Tables.Board.Dealer.Head.Dialog.Frame.Label
+    _label.Text = "pot: " .. self.Table.Pot .. " ★"
+
     local winners = self:_Turn(turns)
     local draw = #winners > 1
 
@@ -94,8 +98,16 @@ function Match:Start()
         Billboard.Set(w.Player, Billboard.Types.Stars, Storages.Global.Stars.Get(w.Player) .. " ★")
     end
 
+    -- TODO: see `Table:Destroy`
+    local _label = workspace.Development.Tables.Board.Dealer.Head.Dialog.Frame.Label
+    _label.Text = "winner gets " .. self.Table.Pot .. " ★"
+
     task.wait(5)
     for _, w in ipairs(winners) do Billboard.Set(w.Player, Billboard.Types.Floating, "") end
+
+    -- TODO: see `Table:Destroy`
+    local _label = workspace.Development.Tables.Board.Dealer.Head.Dialog.Frame.Label
+    _label.Text = ""
 end
 
 function Match:_Turn(turns: Queue): {[number]: Player}
@@ -465,6 +477,10 @@ function Match:_TurnBetting()
         end
         Billboard.Set(_player.Player, Billboard.Types.Floating, __labelText)
         Billboard.Set(_player.Player, Billboard.Types.Stars, _player.Stars .. " ★")
+
+        -- TODO: see `Table:Destroy`
+        local _label = workspace.Development.Tables.Board.Dealer.Head.Dialog.Frame.Label
+        _label.Text = "pot: " .. self.Table.Pot .. " ★"
 
         for _, p in ipairs(self.Table.Players) do
             if p.Id == _player.Id then continue end
