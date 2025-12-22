@@ -1,24 +1,6 @@
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Events = {
-    Match = {
-        Rematch = {
-            Act = ReplicatedStorage.Events.Match.Rematch.Act,
-            Acted = ReplicatedStorage.Events.Match.Rematch.Acted,
-            Join = ReplicatedStorage.Events.Match.Rematch.Join,
-            Quit = ReplicatedStorage.Events.Match.Rematch.Quit,
-        },
-        Turn = {
-            Started = ReplicatedStorage.Events.Match.Turn.Started,
-            Betting = {
-                Started = ReplicatedStorage.Events.Match.Turn.Betting.Started,
-                Act = ReplicatedStorage.Events.Match.Turn.Betting.Act,
-                Acted = ReplicatedStorage.Events.Match.Turn.Betting.Acted,
-                Action = ReplicatedStorage.Events.Match.Turn.Betting.Action,
-            },
-        },
-    },
-}
+local Events = ReplicatedStorage.Events
 
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer

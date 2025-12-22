@@ -2,13 +2,9 @@
 -- CREDIT: https://www.youtube.com/watch?v=HjfjWySxRRA
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Events = {
-    Head = {
-        Look = ReplicatedStorage.Events.Head.Look,
-    },
-}
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Events = ReplicatedStorage.Events
 
 local Player = Players.LocalPlayer
 local Camera = workspace.CurrentCamera

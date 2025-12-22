@@ -3,11 +3,7 @@
 local Players = game:GetService("Players")
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Events = {
-    Head = {
-        Look = ReplicatedStorage.Events.Head.Look,
-    },
-}
+local Events = ReplicatedStorage.Events
 
 Events.Head.Look.OnServerEvent:Connect(function(player, neckCFrame: CFrame)
     local playerChar = player.Character or player.CharacterAdded:Wait()
