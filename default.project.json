@@ -1,5 +1,5 @@
 {
-    "name": "Feeling Lucky?",
+    "name": "Pok3r",
     "tree": {
         "$className": "DataModel",
         "$ignoreUnknownInstances": true,
