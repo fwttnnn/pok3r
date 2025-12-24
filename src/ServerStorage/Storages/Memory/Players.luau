@@ -3,12 +3,11 @@
 local Storage = {}
 
 local Players = game:GetService("Players")
-
 local ServerStorage = game:GetService("ServerStorage")
+
 local Storages = {
     Global = {
         House = require(ServerStorage:WaitForChild("Storages").Global.House),
-        Stars = require(ServerStorage:WaitForChild("Storages").Global.Stars),
     },
 }
 
@@ -24,16 +23,14 @@ function Storage.Set(player: Player, key: string, val)
     Storage[player.UserId][key] = val
 end
 
-function Storage.Load(player: Player, reload: boolean)
-    if not reload and Storage[player.UserId] then
+function Storage.Load(player: Player)
+    if Storage[player.UserId] then
         return Storage[player.UserId]
     end
 
     local success, url = pcall(function()
         local id = player.UserId
-        if id < 0 then id = 1531539874 end -- NOTE: on test
-
-        return Players:GetUserThumbnailAsync(id,
+        return Players:GetUserThumbnailAsync(id, -- 1531539874 
                                              Enum.ThumbnailType.HeadShot,
                                              Enum.ThumbnailSize.Size420x420)
     end)
@@ -45,8 +42,7 @@ function Storage.Load(player: Player, reload: boolean)
 
     Storage[player.UserId] = {
         House = Storages.Global.House.Get(player),
-        Stars = Storages.Global.Stars.Get(player),
-        Icon = url,
+        Icon  = url,
     }
 
     return Storage[player.UserId]

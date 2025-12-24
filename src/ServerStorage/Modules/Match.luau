@@ -6,17 +6,14 @@ local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 local Modules = ServerStorage:WaitForChild("Modules")
 
-local Billboard = require(Modules.Gui.Billboard)
-local Dialog = require(Modules.Gui.Dialog)
-
 local Hand = require(Modules.Poker.Hand)
 local Table = require(Modules.Poker.Table)
 
-local Timer = require(Modules.Common.Timer)
-local Queue = require(Modules.Common.Queue)
+local Timer = require(Modules.Extension.Common.Timer)
+local Queue = require(Modules.Extension.Common.Queue)
 
 local Native = {
-    Player = require(Modules.Native.Player),
+    Player = require(Modules.Extension.Native.Player),
 }
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -26,26 +23,21 @@ local Storages = {
     Memory = {
         Players = require(ServerStorage:WaitForChild("Storages").Memory.Players),
     },
-    Global = {
-        Stars = require(ServerStorage:WaitForChild("Storages").Global.Stars),
-    },
 }
 
-function Match.new(players: {[number]: Player})
+function Match.new(players: {[number]: Player}, _table: Folder)
     local match = setmetatable({
-        Table = Table.new(players),
+        Table = Table.new(players, _table),
         Timer = Timer.new(),
         -- TODO: as enum.
         State = "Going",
 
         -- NOTE: the last player to move.
         __last = #players,
-        -- NOTE: player removing connection.
         __conn = nil,
     }, Match)
 
-    -- TODO(priority): disconnect this connection. (maybe make something like :Destroy())?
-    -- TODO(priority): when it's our turn, we can still bet and everything, so.. this is a thing to keep in mind.
+    -- NOTE(priority): when it's our turn, we can still bet and everything, so.. this is a thing to keep in mind.
     match.__conn = Players.PlayerRemoving:Connect(function(player: Player)
         match.Table:Remove(player)
     end)
@@ -53,7 +45,18 @@ function Match.new(players: {[number]: Player})
     return match
 end
 
+function Match:Destroy()
+    self.Table:Destroy()
+    self.__conn:Disconnect()
+end
+
 function Match:Start()
+    local players = self.Table.Players
+    for _, p in ipairs(players) do
+        Events.Match.Started:FireClient(p.Player,
+                                        players)
+    end
+
     local turns = Queue.new()
     turns:Push({Type = "DP"})
     turns:Push({Type = "BT"})
@@ -65,38 +68,18 @@ function Match:Start()
     turns:Push({Type = "BT"})
     turns:Push({Type = "SD"})
 
-    -- TODO: see `Table:Destroy`
-    local _label = workspace.Development.Tables.Board.Dealer.Head.Dialog.Frame.Label
-    _label.Text = "pot: " .. self.Table.Pot .. " ★"
-
     local winners = self:_Turn(turns)
-    local draw = #winners > 1
-
-    local players = self.Table.Players
-    for _, p in ipairs(players) do Billboard.Set(p.Player, Billboard.Types.Floating, "") end
-    for _, w in ipairs(winners) do
-        Storages.Global.Stars.Gain(w.Player, self.Table.Pot / #winners)
-        Billboard.Set(w.Player, Billboard.Types.Floating, draw and "DRAW" or "WINNER")
-        Billboard.Set(w.Player, Billboard.Types.Stars, Storages.Global.Stars.Get(w.Player) .. " ★")
+    for _, p in ipairs(players) do
+        Events.Match.Ended:FireClient(p.Player,
+                                      winners)
     end
-
-    -- TODO: see `Table:Destroy`
-    local _label = workspace.Development.Tables.Board.Dealer.Head.Dialog.Frame.Label
-    _label.Text = "winner gets " .. self.Table.Pot .. " ★"
-
-    task.wait(5)
-    for _, w in ipairs(winners) do Billboard.Set(w.Player, Billboard.Types.Floating, "") end
-
-    -- TODO: see `Table:Destroy`
-    local _label = workspace.Development.Tables.Board.Dealer.Head.Dialog.Frame.Label
-    _label.Text = ""
 end
 
 function Match:_Turn(turns: Queue): {[number]: Player}
     local winners = {}
 
     for _, p in ipairs(self.Table.Players) do
-        Events.Match.Turn.Started:FireClient(p.Player, p.Stars)
+        Events.Match.Turn.Started:FireClient(p.Player, p.Health)
     end
 
     while not turns:IsEmpty() do
@@ -238,7 +221,7 @@ function Match:_TurnBetting()
     end
 
     for _, _player in ipairs(self.Table.Players) do
-        Billboard.Set(_player.Player, Billboard.Types.Floating, "")
+        -- Billboard.Set(_player.Player, Billboard.Types.Floating, "")
 
         if not _player.Status["Alive"] then continue end
         Events.Match.Turn.Betting.Started:FireClient(_player.Player)
@@ -266,14 +249,13 @@ function Match:_TurnBetting()
                 if amount <= highestBet then return false end
                 if amount <= 0 then return false end
 
-                if _player.Stars < amount then return false end
+                if _player.Health < amount then return false end
 
                 highestBet = amount
-                _player.Stars -= amount
-                task.spawn(function() Storages.Global.Stars.Lose(_player.Player, amount) end)
+                _player.Health -= amount
                 self.Table.Pot += amount
 
-                if _player.Stars <= 0 then
+                if _player.Health <= 0 then
                     action.Type = "ALL IN"
 
                     _player.Status["Alive"] = false
@@ -286,7 +268,7 @@ function Match:_TurnBetting()
                 -- NOTE: rebuilding queue means a new betting round (then we reset everyone's action label?).
                 -- self:__RemoveAllPlayersActionBillboard()
 
-                print("[bet] pot increased", _player.Stars, self.Table.Pot)
+                print("[bet] pot increased", _player.Health, self.Table.Pot)
                 return true
             end,
 
@@ -296,29 +278,28 @@ function Match:_TurnBetting()
 
                 if lastAction.Type == "CHECK" then return false end
 
-                local amount = math.min(_player.Stars, highestBet)
+                local amount = math.min(_player.Health, highestBet)
                 if amount <= 0 then return false end
 
                 action.Amount = amount
-                _player.Stars -= amount
-                task.spawn(function() Storages.Global.Stars.Lose(_player.Player, amount) end)
+                _player.Health -= amount
                 self.Table.Pot += amount
 
-                if _player.Stars <= 0 then
+                if _player.Health <= 0 then
                     action.Type = "ALL IN"
 
                     _player.Status["Alive"] = false
                     _player.Status["All In"] = true
                 end
 
-                print("[call] pot increased", _player.Stars, self.Table.Pot)
+                print("[call] pot increased", _player.Health, self.Table.Pot)
                 return true
             end,
 
             CHECK = function(action)
                 if lastAction.Type and lastAction.Type ~= "CHECK" then return false end
 
-                print("[check] game continues", _player.Stars, self.Table.Pot)
+                print("[check] game continues", _player.Health, self.Table.Pot)
                 return true
             end,
 
@@ -326,7 +307,7 @@ function Match:_TurnBetting()
                 _player.Status["Alive"] = false
                 _player.Status["Folded"] = true
 
-                print("[fold] player out", _player.Stars, self.Table.Pot)
+                print("[fold] player out", _player.Health, self.Table.Pot)
                 return true
             end,
         }
@@ -335,11 +316,11 @@ function Match:_TurnBetting()
         actionHandlers["ALL IN"] = function(action)
             -- NOTE: we can just use BET, but it won't go through cuz
             --       we can't BET the same as `highestBet`.
-            if _player.Stars <= highestBet then
+            if _player.Health <= highestBet then
                 return actionHandlers["CALL"](action)
             end
 
-            action.Amount = _player.Stars
+            action.Amount = _player.Health
             return actionHandlers["BET"](action)
         end
 
@@ -358,7 +339,6 @@ function Match:_TurnBetting()
             },
         }
 
-        -- TODO: should we refund stars if disconnected? idk tho.. could be duplicated
         local function __disconnect()
             if connections.Act then               connections.Act:Disconnect() end
             if connections.Timer.Progression then connections.Timer.Progression:Disconnect() end
@@ -417,17 +397,20 @@ function Match:_TurnBetting()
 
                 -- just to continue off.
                 acted:Fire()
-                return
             end
 
-            Billboard.Set(_player.Player, Billboard.Types.Floating, sec .. "s left")
+            for _, p in ipairs(self.Table.Players) do
+                Events.Match.Turn.Timer:Fire(p.Player,
+                                             _player.Player,
+                                             sec / self.Timer.Duration)
+            end
         end)
 
         if Native.Player.Disconnected(_player.Player) then
             __disconnect()
             continue
         end
-        Events.Match.Turn.Betting.Act:FireClient(_player.Player, _player.Stars)
+        Events.Match.Turn.Betting.Act:FireClient(_player.Player, _player.Health)
 
         self.Timer:Stop()
         self.Timer:Reset()
@@ -436,37 +419,27 @@ function Match:_TurnBetting()
         -- NOTE: this blocks process.
         --       pass this event, the player should have acted.
         acted.Event:Wait()
-        Events.Match.Turn.Betting.Acted:FireClient(_player.Player, _player.Stars)
+        Events.Match.Turn.Betting.Acted:FireClient(_player.Player,
+                                                   _player.Health,
+                                                   self.Table.Pot)
 
         self.Timer:Stop()
         self.Timer:Reset()
 
-        -- NOTE: check from `connections.Timer`
         if Native.Player.Disconnected(_player.Player) then
             __disconnect()
             continue
         end
 
-        -- NOTE: set action text to billboard
-        local __labelText = lastAction.Type
-        if lastAction.Type ~= "ALL IN" then
-            if lastAction.Type == "BET" then
-                __labelText = lastAction.Type .. " " .. lastAction.Amount .. " ★"
-            end
-            if lastAction.Type == "RAISE" then
-                __labelText = lastAction.Type .. " TO " .. lastAction.Amount .. " ★"
-            end
-        end
-        Billboard.Set(_player.Player, Billboard.Types.Floating, __labelText)
-        Billboard.Set(_player.Player, Billboard.Types.Stars, _player.Stars .. " ★")
-
-        -- TODO: see `Table:Destroy`
-        local _label = workspace.Development.Tables.Board.Dealer.Head.Dialog.Frame.Label
-        _label.Text = "pot: " .. self.Table.Pot .. " ★"
-
         for _, p in ipairs(self.Table.Players) do
             if p.Id == _player.Id then continue end
-            Events.Match.Turn.Betting.Action:FireClient(p.Player, _player.Player, lastAction)
+            Events.Match.Turn.Betting.Action:FireClient(p.Player,
+                                                        _player.Player,
+                                                        lastAction,
+                                                        -- NOTE: a bit unorganized, but this is better than
+                                                        --       firing multiple events
+                                                        _player.Health,
+                                                        self.Table.Pot)
         end
 
         __disconnect()

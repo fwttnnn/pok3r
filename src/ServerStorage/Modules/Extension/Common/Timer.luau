@@ -4,7 +4,6 @@ Timer.__index = Timer
 
 function Timer.new()
     local events = {
-        -- Progression = Instance.new("BindableEvent"),
         Progression = {
             Timid = Instance.new("BindableEvent"), -- fires every 1 second
             Tick  = Instance.new("BindableEvent"), -- fires every 0.25 second
@@ -37,6 +36,7 @@ function Timer:Start(duration)
 
     self.Running = true
     self.StartTime = tick()
+    self.Duration = duration
 
     local nextTick = 0.25
     local nextTimid = 0

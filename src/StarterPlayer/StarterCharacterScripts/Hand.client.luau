@@ -1,6 +1,4 @@
 -- !strict
--- NOTE: handles the static/quick buttons
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Objects = ReplicatedStorage:WaitForChild("Objects")
 local Cards = Objects.Cards.Poker
@@ -95,6 +93,9 @@ function __handle_unequip()
         part:Destroy()
     end
 end
+
+-- NOTE: handles the static buttons
+--       and/or user input
 
 local Buttons = PlayerGui.ScreenGui:FindFirstChild("Static/Quick")
 Buttons.Cards.Button.MouseButton1Click:Connect(function()

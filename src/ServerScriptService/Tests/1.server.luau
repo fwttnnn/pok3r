@@ -4,8 +4,6 @@ local Test = {}
 local ServerStorage = game:GetService("ServerStorage")
 local Modules = ServerStorage:WaitForChild("Modules")
 
-local Billboard = require(Modules.Gui.Billboard)
-
 local Card = require(Modules.Poker.Card)
 local Match = require(Modules.Match)
 
@@ -82,16 +80,11 @@ function Test.TableDealToPlayers()
     match.Table:Deal(_p2)
 end
 
-function Test.BillboardNew()
-    print(Billboard.Root(me))
-end
-
 function Test.All()
     -- TODO: gather all functions (automatically) and fire it all here.
     -- Test.IDontKnow()
     -- Test.TableDealToCommunity()
     -- Test.TableDealToPlayers()
-    -- Test.BillboardNew()
 end
 
 Test.All()

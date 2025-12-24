@@ -1,4 +1,0 @@
---!strict
--- servers storage, keep track of all the alive servers
--- 
--- TODO: WIP

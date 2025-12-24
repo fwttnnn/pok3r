@@ -8,9 +8,6 @@ local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 local Modules = ServerStorage:WaitForChild("Modules")
 
-local Billboard = require(Modules.Gui.Billboard)
-local Dialog = require(Modules.Gui.Dialog)
-
 local Match = require(Modules.Match)
 local Table = require(Modules.Poker.Table)
 
@@ -22,27 +19,13 @@ local Storages = {
 }
 
 Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function(character)
-        Storages.Memory.Players.Load(player, true)
-        Billboard.Attach(player)
-    end)
+    Storages.Memory.Players.Load(player, true)
+
+    -- player.CharacterAdded:Connect(function(character)
+    -- end)
 end)
 
--- NOTE: COMMENT ON PROD
--- if true then return end
-
-local tables: Folder = workspace.Development.Tables
-for _, t in ipairs(tables:GetChildren()) do
-    local board: Folder = t
-    local seats: Folder = board.Seats
-    local billboard: BillboardGui = t.Billboard
-
-    local anims = {}
-    local players = {}
-    local _ov = {}
-
-    local match
-
+for _, t in ipairs(workspace.Development.Tables:GetChildren()) do
     local function setModelTransparency(model, transparency)
         for _, part in ipairs(model:GetDescendants()) do
             if not (part:IsA("BasePart") or part:IsA("Decal")) then
@@ -53,90 +36,158 @@ for _, t in ipairs(tables:GetChildren()) do
         end
     end
 
-    local _board = board -- idk why i did this, but i'll fix it later
-    local _dealer = _board.Dealer
-    local _head = _dealer.Head
+    local function isTableFull(): boolean
+        local seats = t.Seats:GetChildren()
 
-    local _rings = {}
-    local _bell = _board.Bell
-    _bell.ClickDetector.MouseClick:Connect(function(player: Player)
-        _rings[player] = true
+        for _, model in ipairs(seats) do
+            if not model.Seat:FindFirstChild("SeatWeld") then
+                return false
+            end
+        end
+
+        return true
+    end
+
+    local players  = {}
+    local metadata = {}
+
+    local rings = {}
+    local match = nil
+
+    for _, model in ipairs(t.Seats:GetChildren()) do
+        local anim = nil
+        local seat = model.Seat
+
+        seat.ChildAdded:Connect(function(child)
+            if child.ClassName ~= "Weld" then return end
+            
+            local humanoid = child.Part1.Parent:FindFirstChild("Humanoid")
+            if not humanoid then return end
+
+            local player = game.Players:GetPlayerFromCharacter(humanoid.Parent)
+            if not player then return end
+
+            workspace.Invisible.SFX.Dash:Play()
+            table.insert(players, player)
+
+            local animator = humanoid:WaitForChild("Animator")
+            anim = animator:LoadAnimation(ReplicatedStorage.Animations.Sit:FindFirstChild("Lean"))
+            anim:Play()
+
+            if match then return end
+            if isTableFull() then
+                rings = {}
+                setModelTransparency(t.Dealer.Hands.Pointing, 0)
+                setModelTransparency(t.Dealer.Hands.Resting, 1)
+                t.Dealer.Head.Dialog.Frame.Label.Text = "Ring the bell.."
+            end
+        end)
+
+        seat.ChildRemoved:Connect(function(child)
+            if child.ClassName ~= "Weld" then return end
+
+            local humanoid = child.Part1.Parent:FindFirstChild("Humanoid")
+            if not humanoid then return end
+
+            local player = game.Players:GetPlayerFromCharacter(humanoid.Parent)
+            if not player then return end
+            
+            table.remove(players, _table.index(players, function(p) return p == player end))
+            local empty = #players == 0
+
+            rings[player] = nil
+            setModelTransparency(t.Dealer.Hands.Pointing, 1)
+            setModelTransparency(t.Dealer.Hands.Resting, 0)
+
+            anim:Stop()
+            anim:Remove()
+        end)
+    end
+
+    Players.PlayerRemoving:Connect(function(player: Player)
+        local index = _table.index(players, function(p) return p == player end)
+        if not index then return end -- NOTE: prob from another table
+
+        table.remove(players, index)
+    end)
+
+    t.Bell.ClickDetector.MouseClick:Connect(function(player: Player)
+        rings[player] = true
         workspace.Invisible.SFX.Bell:Play()
 
         for _, p in ipairs(players) do
-            if not _rings[p] then return end
+            if not rings[p] then return end
         end
 
         if #players < 2 then return end
         if match then return end
 
-        _rings = {}
+        rings = {}
+        setModelTransparency(t.Dealer.Hands.Pointing, 1)
+        setModelTransparency(t.Dealer.Hands.Resting, 0)
 
+        for _, p in ipairs(players) do
+            local humanoid = p.Character:FindFirstChild("Humanoid")
+
+            metadata[p] = {
+                ["WalkSpeed"] = humanoid.WalkSpeed,
+                ["JumpPower"] = humanoid.JumpPower,
+                ["UseJumpPower"] = humanoid.UseJumpPower,
+            }
+
+            humanoid.WalkSpeed = 0
+            humanoid.JumpPower = 0
+            humanoid.UseJumpPower = true
+        end
+
+        for _, p in ipairs(players) do
+            Storages.Memory.Players.Load(p)
+        end
+
+        -- NOTE: we start a new match from here
+        --       branch off thread so the main thread won't be blocked by `match:Start()`
         task.spawn(function()
-            setModelTransparency(_dealer.Hands.Pointing, 1)
-            setModelTransparency(_dealer.Hands.Resting, 0)
-
-            for _, p in ipairs(players) do
-                local humanoid = p.Character:FindFirstChild("Humanoid")
-
-                _ov[p] = {
-                    WalkSpeed = humanoid.WalkSpeed,
-                    JumpPower = humanoid.JumpPower,
-                    UseJumpPower = humanoid.UseJumpPower,
-                }
-
-                humanoid.WalkSpeed = 0
-                humanoid.JumpPower = 0
-                humanoid.UseJumpPower = true
-            end
-
-            for _, p in ipairs(players) do
-                Storages.Memory.Players.Load(p)
-            end
-
             match = Match.new(players)
             Storages.Memory.Matches.Add(match)
 
             match:Start()
+            task.wait(7.6) -- don't ask why it's 7.6 (reverse)
             Storages.Memory.Matches.Remove(match)
 
             for _, _p in ipairs(match.Table.Players) do
                 local p = _p.Player
                 local humanoid = p.Character:FindFirstChild("Humanoid")
-                humanoid.WalkSpeed = _ov[p].WalkSpeed
-                humanoid.JumpPower = _ov[p].JumpPower
-                humanoid.UseJumpPower = _ov[p].UseJumpPower
+
+                humanoid.WalkSpeed = metadata[p]["WalkSpeed"]
+                humanoid.JumpPower = metadata[p]["JumpPower"]
+                humanoid.UseJumpPower = metadata[p]["UseJumpPower"]
             end
 
-            match.Table:Destroy()
+            match:Destroy()
             match = nil
-            _rings = {}
+            rings = {}
 
-            -- TODO: account for tables that has more players
-            local seatsFull = #players == 2
-            if seatsFull then
-                _table.shift(players, 1)
-
-                setModelTransparency(_dealer.Hands.Pointing, 0)
-                setModelTransparency(_dealer.Hands.Resting, 1)
-
-                local _label = _head.Dialog.Frame.Label
-                Dialog.Show(_label, "Ring the bell..")
+            if isTableFull() then
+                setModelTransparency(t.Dealer.Hands.Pointing, 0)
+                setModelTransparency(t.Dealer.Hands.Resting, 1)
+                t.Dealer.Head.Dialog.Frame.Label.Text = "Ring the bell.."
             end
         end)
     end)
 
-    -- axis can be "X", "Y", or "Z"
+    -- NOTE: AI generated code
+    --       axis can be "X", "Y", or "Z"
+    --
+    --       -> to animate hovering dealer's hand/head
     local function createHover(part, hoverHeight, hoverTime, axis)
         hoverHeight = hoverHeight or 0.145
         hoverTime = hoverTime or 2
-        axis = axis or "Y"  -- default to vertical hover
+        axis = axis or "Y"
 
         if part:IsA("BasePart") then
             local originalCFrame = part.CFrame
-
-            -- Determine hover offset vector based on axis
             local offset = Vector3.new(0, 0, 0)
+
             if axis == "X" then
                 offset = Vector3.new(hoverHeight, 0, 0)
             elseif axis == "Y" then
@@ -152,83 +203,17 @@ for _, t in ipairs(tables:GetChildren()) do
                 hoverTime,
                 Enum.EasingStyle.Sine,
                 Enum.EasingDirection.InOut,
-                -1,  -- repeat infinitely
+                -1,   -- repeat infinitely
                 true  -- reverse automatically
             )
             local goal = {CFrame = originalCFrame * CFrame.new(offset)}
             local tween = TweenService:Create(part, tweenInfo, goal)
+
             tween:Play()
             return tween
         end
     end
 
-    for _, part in ipairs(_head:GetChildren()) do
-        createHover(part, 0.145, 2, "Y")
-    end
-
-    for _, part in ipairs(_dealer.Hands.Pointing:GetChildren()) do
-        createHover(part, 0.145, 2, "Z")
-    end
-
-    Players.PlayerRemoving:Connect(function(player: Player)
-        table.remove(players, _table.index(players, function(p) return p == player end))
-        local empty = #players == 0
-
-        setModelTransparency(_dealer.Hands.Pointing, 1)
-        setModelTransparency(_dealer.Hands.Resting, 0)
-    end)
-
-    for _, model in ipairs(seats:GetChildren()) do
-        local seat = model.Seat
-
-        seat.ChildAdded:Connect(function(child)
-            if child.ClassName ~= "Weld" then return end
-            
-            local humanoid = child.Part1.Parent:FindFirstChild("Humanoid")
-            if not humanoid then return end
-
-            local player = game.Players:GetPlayerFromCharacter(humanoid.Parent)
-            if not player then return end
-
-            workspace.Invisible.SFX.Dash:Play()
-
-            local empty = #players == 0
-            table.insert(players, player)
-
-            local seatsFull = #players == 2
-            if seatsFull and not match then
-                _rings = {}
-                setModelTransparency(_dealer.Hands.Pointing, 0)
-                setModelTransparency(_dealer.Hands.Resting, 1)
-
-                local _label = _head.Dialog.Frame.Label
-                Dialog.Show(_label, "Ring the bell..")
-            end
-
-            local animator = humanoid:WaitForChild("Animator")
-            anims[player.UserId] = animator:LoadAnimation(ReplicatedStorage.Animations.Sit:FindFirstChild("Lean"))
-            anims[player.UserId]:Play()
-        end)
-
-        seat.ChildRemoved:Connect(function(child)
-            if child.ClassName ~= "Weld" then return end
-
-            local humanoid = child.Part1.Parent:FindFirstChild("Humanoid")
-            if not humanoid then return end
-
-            local player = game.Players:GetPlayerFromCharacter(humanoid.Parent)
-            if not player then return end
-            
-            table.remove(players, _table.index(players, function(p) return p == player end))
-            local empty = #players == 0
-
-            _rings = {}
-            setModelTransparency(_dealer.Hands.Pointing, 1)
-            setModelTransparency(_dealer.Hands.Resting, 0)
-
-            anims[player.UserId]:Stop()
-            anims[player.UserId]:Remove()
-            anims[player.UserId] = nil
-        end)
-    end
+    for _, part in ipairs(t.Dealer.Head:GetChildren()) do           createHover(part, 0.145, 2, "Y") end
+    for _, part in ipairs(t.Dealer.Hands.Pointing:GetChildren()) do createHover(part, 0.145, 2, "Z") end
 end

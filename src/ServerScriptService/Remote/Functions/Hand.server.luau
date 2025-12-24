@@ -1,11 +1,9 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
+
 local Objects = ReplicatedStorage:WaitForChild("Objects")
 local Cards = Objects.Cards
-
-local ServerStorage = game:GetService("ServerStorage")
-local Modules = ServerStorage:WaitForChild("Modules")
-local Card = require(Modules.Poker.Card)
 
 local Functions = {
     Hand = {
@@ -13,6 +11,9 @@ local Functions = {
         Unequip = ReplicatedStorage.Functions.Hand.Unequip,
     },
 }
+
+local Modules = ServerStorage:WaitForChild("Modules")
+local Card = require(Modules.Poker.Card)
 
 local Storages = {
     Memory = {

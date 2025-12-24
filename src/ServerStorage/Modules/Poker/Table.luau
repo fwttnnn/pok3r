@@ -18,11 +18,10 @@ local Hand = require(Modules.Poker.Hand)
 local Storages = {
     Global = {
         House = require(ServerStorage:WaitForChild("Storages").Global.House),
-        Stars = require(ServerStorage:WaitForChild("Storages").Global.Stars),
     },
 }
 
-function Table.new(players: {[number]: Player})
+function Table.new(players: {[number]: Player}, part: Folder)
     assert(#players >= 2, "are you 5?")
 
     local _players = {}
@@ -36,12 +35,12 @@ function Table.new(players: {[number]: Player})
                 ["Folded"] = false,
                 ["All In"] = false,
             },
-            Stars = Storages.Global.Stars.Get(player),
+            Health = 100,
             Hand = Hand.new(), 
         })
     end
 
-    local deck = Deck.new()
+    local deck = Deck.new(part)
     for _, suit: Folder in ipairs(Cards.Poker:GetChildren()) do
         for _, rank: Part in ipairs(suit:GetChildren()) do
             deck:Push(Card.new(rank.Name, suit.Name))
@@ -49,13 +48,13 @@ function Table.new(players: {[number]: Player})
     end
     deck:Shuffle()
 
-    local _board = workspace.Development.Tables.Board
+    -- NOTE: create line visualization for the community cards
     local inner = Instance.new("Part")
     inner.Name = "Line"
     inner.Color = Color3.fromRGB(200, 0, 100)
     inner.Transparency = 1
     inner.Anchored = true
-    inner.Position = _board._Templates.Community.Position
+    inner.Position = part.Template.Community.Position
     inner.Rotation = Vector3.new(0, -180, 0)
     inner.Size = Vector3.new((Cards.Blank.Size.X + 0.03) * 5, 0, Cards.Blank.Size.Z + 0.05)
 
@@ -65,7 +64,7 @@ function Table.new(players: {[number]: Player})
     outer.Size = inner.Size + Vector3.new(0.05, 0, 0.05)
     outer.Position = inner.Position
     outer.Transparency = 1
-    outer.Parent = _board._Templates.Community
+    outer.Parent = part.Template.Community
 
     -- outer.Color = Color3.fromRGB(202, 191, 163) -- beige
     outer.Color = Color3.fromRGB(196, 40, 28) -- beige
@@ -74,7 +73,7 @@ function Table.new(players: {[number]: Player})
     local union = outer:SubtractAsync({inner})
     union.Name = "Community"
     union.Position -= Vector3.new(0, 0.0007, 0) -- NOTE: so the lines goes inside the board a little
-    union.Parent = _board
+    union.Parent = part
 
     inner.Parent = union
     outer:Destroy()
@@ -84,6 +83,7 @@ function Table.new(players: {[number]: Player})
     union.Transparency = 1
 
     return setmetatable({
+        Part = part,
         Players = _players,
         Deck = deck,
         Pot = 0,
@@ -95,13 +95,9 @@ function Table.new(players: {[number]: Player})
 end
 
 function Table:Destroy()
-    -- TODO(priority): ehmm, initialize table programmatically plz
-    --                 we've already done it (see Main.server.luau), i'm lazy to pass it here.
-    local _board = workspace.Development.Tables.Board
-
-    _board.Deck:Destroy()
-    _board.Community.Line:Destroy()
-    _board.Community:Destroy()
+    self.Part.Deck:Destroy()
+    self.Part.Community.Line:Destroy()
+    self.Part.Community:Destroy()
 end
 
 function Table:Add(player: Player)
@@ -110,7 +106,7 @@ function Table:Add(player: Player)
         Player = player,
         -- TODO: make this an enum
         State = "Waiting",
-        Stars = Storages.Global.Stars.Get(player),
+        Health = 100,
         Hand = Hand.new(), 
     })
 end
@@ -140,9 +136,7 @@ function Table:Deal(player: Player?)
             local card: Card = self.Deck:Pop()
             self.Cards.Community:Push(card)
 
-            local _board = workspace.Development.Tables.Board
-            local inner = _board.Community.Line
-
+            local inner = self.Table.Community.Line
             local _blank = Cards.Blank:Clone()
             
             local nCards = #self.Cards.Community.Cards
@@ -243,13 +237,8 @@ function Table:Deal(player: Player?)
             local _index = self:Index(player)
             local card = self.Deck:Pop()
 
-            local _board = workspace.Development.Tables.Board
-            local line = _board.Lines:FindFirstChild(tostring(_index))
-            local seat = nil
-
-            if not line then
-                warn("cannot find line for", _index)
-            end
+            local line = self.Part.Template.Lines:FindFirstChild(tostring(_index))
+            if not line then warn("cannot find line for", _index) end
 
             local _blank = Cards.Blank:Clone()
             _blank.Parent = line
@@ -279,7 +268,6 @@ function Table:Deal(player: Player?)
             end)
 
             workspace.Invisible.SFX.Card.Slide:Play()
-
             _player.Hand:Push(card)
         end,
     }
