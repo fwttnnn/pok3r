@@ -221,9 +221,6 @@ function Match:_TurnBetting()
     end
 
     for _, _player in ipairs(self.Table.Players) do
-        -- Billboard.Set(_player.Player, Billboard.Types.Floating, "")
-
-        if not _player.Status["Alive"] then continue end
         Events.Match.Turn.Betting.Started:FireClient(_player.Player)
     end
 
@@ -390,7 +387,7 @@ function Match:_TurnBetting()
             acted:Fire()
         end)
 
-        connections.Timer.Progression = self.Timer.Progression.Tick:Connect(function(sec: number)
+        connections.Timer.Progression = self.Timer.Progression.Tick:Connect(function(remaining: number)
             if Native.Player.Disconnected(_player.Player) then
                 self.Timer:Stop()
                 self.Timer:Reset()
@@ -400,9 +397,9 @@ function Match:_TurnBetting()
             end
 
             for _, p in ipairs(self.Table.Players) do
-                Events.Match.Turn.Timer:Fire(p.Player,
-                                             _player.Player,
-                                             sec / self.Timer.Duration)
+                Events.Match.Turn.Betting.Timer:FireClient(p.Player,
+                                                           _player.Player,
+                                                           remaining / self.Timer.Duration)
             end
         end)
 
@@ -420,6 +417,7 @@ function Match:_TurnBetting()
         --       pass this event, the player should have acted.
         acted.Event:Wait()
         Events.Match.Turn.Betting.Acted:FireClient(_player.Player,
+                                                   lastAction,
                                                    _player.Health,
                                                    self.Table.Pot)
 

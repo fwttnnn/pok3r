@@ -107,7 +107,7 @@ setButtonCallback(Buttons.Arrows.Increase, function()
     local handlers = {
         ["BET"] = function()
             bet = math.min(bet + 10, health)
-            Buttons.Right.GUI.Text = _type .. " " .. bet .. " ★"
+            Buttons.Right.GUI.Text = _type .. " " .. bet .. "H"
         end,
         ["RAISE"] = function()
             bet += 10
@@ -116,7 +116,7 @@ setButtonCallback(Buttons.Arrows.Increase, function()
                 bet = math.max(0, health - actions.Last.Amount)
             end
 
-            Buttons.Right.GUI.Text = _type .. " TO " .. actions.Last.Amount + bet .. " ★"
+            Buttons.Right.GUI.Text = _type .. " TO " .. actions.Last.Amount + bet .. "H"
         end,
     }
 
@@ -128,11 +128,11 @@ setButtonCallback(Buttons.Arrows.Decrease, function()
     local handlers = {
         ["BET"] = function()
             bet = math.max(bet - 5, 10)
-            Buttons.Right.GUI.Text = _type .. " " .. bet .. " ★"
+            Buttons.Right.GUI.Text = _type .. " " .. bet .. "H"
         end,
         ["RAISE"] = function()
             bet = math.max(bet - 5, 10)
-            Buttons.Right.GUI.Text = _type .. " TO " .. actions.Last.Amount + bet .. " ★"
+            Buttons.Right.GUI.Text = _type .. " TO " .. actions.Last.Amount + bet .. "H"
         end,
     }
 
@@ -142,7 +142,7 @@ end)
 -- NOTE: naming based on last action
 local buttonLayouts = {}
 
-buttonLayouts.Check = function()
+buttonLayouts.CHECK = function()
     Buttons.Left.GUI.Text = "CHECK"
     setButtonCallback(Buttons.Left, function()
         Events.Match.Turn.Betting.Act:FireServer({Type = "CHECK"})
@@ -153,7 +153,7 @@ buttonLayouts.Check = function()
         Events.Match.Turn.Betting.Act:FireServer({Type = "ALL IN"})
     end)
 
-    Buttons.Right.GUI.Text = "BET " .. bet .. " ★"
+    Buttons.Right.GUI.Text = "BET " .. bet .. "H"
     setButtonCallback(Buttons.Right, function()
         Events.Match.Turn.Betting.Act:FireServer({Type = "BET", Amount = bet})
         bet = 10
@@ -165,7 +165,7 @@ buttonLayouts.Check = function()
     end)
 end
 
-buttonLayouts.Call = function()
+buttonLayouts.CALL = function()
     assert(actions.Last.Amount ~= nil)
 
     Buttons.Left.GUI.Text = "CALL"
@@ -178,7 +178,7 @@ buttonLayouts.Call = function()
         Events.Match.Turn.Betting.Act:FireServer({Type = "ALL IN"})
     end)
 
-    Buttons.Right.GUI.Text = "RAISE TO " .. actions.Last.Amount + bet .. " ★"
+    Buttons.Right.GUI.Text = "RAISE TO " .. actions.Last.Amount + bet .. "H"
     setButtonCallback(Buttons.Right, function()
         Events.Match.Turn.Betting.Act:FireServer({Type = "RAISE", Amount = bet})
         bet = 10
@@ -190,18 +190,52 @@ buttonLayouts.Call = function()
     end)
 end
 
-buttonLayouts.Fold      = function() buttonLayouts[actions.Last.Type or "Default"]() end
-buttonLayouts.Bet       = buttonLayouts.Call
-buttonLayouts["All In"] = buttonLayouts.Bet
-buttonLayouts["Raise"]  = buttonLayouts.Bet
-buttonLayouts.Default   = buttonLayouts.Check
+buttonLayouts.FOLD      = function() buttonLayouts[actions.Last.Type or "DEFAULT"]() end
+buttonLayouts.BET       = buttonLayouts.CALL
+buttonLayouts["ALL IN"] = buttonLayouts.BET
+buttonLayouts["RAISE"]  = buttonLayouts.BET
+buttonLayouts.DEFAULT   = buttonLayouts.CHECK
 
 disableButtons()
-buttonLayouts.Default()
+buttonLayouts.DEFAULT()
 
 --
 -- Events
 --
+
+Events.Match.Started.OnClientEvent:Connect(function(players)
+    PlayerGui.ScreenGui.Action.Visible = true
+
+    for i, p in ipairs(players) do
+        -- TODO: rename GUI
+        local GUI = ReplicatedStorage.GUI.Action.Player:Clone()
+        GUI.Name = p.Player.UserId
+        GUI.Player.Text = p.Player.DisplayName
+        GUI.Health.Text = p.Health .. "H"
+        GUI.Parent = PlayerGui.ScreenGui.Action.Wrapper
+    end
+end)
+
+Events.Match.Ended.OnClientEvent:Connect(function(winners)
+    for _, c in ipairs(PlayerGui.ScreenGui.Action.Wrapper:GetChildren()) do
+        if not c:IsA("Frame") then continue end
+        c.Action.Text = ""
+    end
+
+    local draw = #winners > 1
+    for _, w in ipairs(winners) do
+        local GUI = PlayerGui.ScreenGui.Action.Wrapper[w.Player.UserId]
+        GUI.Action.Text = draw and "DRAW" or "WINNER"
+    end
+
+    task.wait(7.6)
+    for _, c in ipairs(PlayerGui.ScreenGui.Action.Wrapper:GetChildren()) do
+        if not c:IsA("Frame") then continue end
+        c:Destroy()
+    end
+
+    PlayerGui.ScreenGui.Action.Visible = false
+end)
 
 Events.Match.Turn.Started.OnClientEvent:Connect(function(_health)
     bet = 10
@@ -218,41 +252,53 @@ Events.Match.Turn.Betting.Act.OnClientEvent:Connect(function(_health)
     health = _health
 end)
 
-Events.Match.Turn.Betting.Acted.OnClientEvent:Connect(function(_health)
+Events.Match.Turn.Betting.Acted.OnClientEvent:Connect(function(action, _health, pot)
     disableButtons()
     bet = 10
     health = _health
+
+    PlayerGui.ScreenGui.Action.Pot.Label.Text = "POT: " .. pot .. "H"
+    PlayerGui.ScreenGui.Action.Wrapper:FindFirstChild(Player.UserId).Health.Text = _health .. "H"
+    PlayerGui.ScreenGui.Action.Wrapper:FindFirstChild(Player.UserId).Timer.Bar.Transparency = 1
+
+    local labelText = action.Type
+    if action.Type ~= "ALL IN" then
+        if action.Type == "BET" then
+            labelText = action.Type .. " " .. action.Amount .. "H"
+        end
+        if action.Type == "RAISE" then
+            labelText = action.Type .. " TO " .. action.Amount .. "H"
+        end
+    end
+    PlayerGui.ScreenGui.Action.Wrapper:FindFirstChild(Player.UserId).Action.Text = labelText
 end)
 
-Events.Match.Turn.Betting.Action.OnClientEvent:Connect(function(player, action)
-    -- NOTE: why the hell doesn't lua have a standard library duddd..
-    -- SEE: http://lua-users.org/wiki/SciteTitleCase
-    local function capitalize(str: string): string
-        local buf = {}
-        local inWord = false
-
-        for i = 1, #str do
-            local c = string.sub(str, i, i)
-            if inWord then
-                table.insert(buf, string.lower(c))
-                if string.find(c, '%s') then
-                    inWord = false
-                end
-            else
-                table.insert(buf, string.upper(c))
-                inWord = true
-            end
-        end
-
-        return table.concat(buf)
-    end
-
-    if action.Type ~= "Fold" then
+Events.Match.Turn.Betting.Action.OnClientEvent:Connect(function(player, action, _health, pot)
+    if action.Type ~= "FOLD" then
         actions.Last = action
     end
 
-    action.Type = capitalize(action.Type)
     buttonLayouts[action.Type]()
+
+    PlayerGui.ScreenGui.Action.Pot.Label.Text = "POT: " .. pot .. "H"
+    PlayerGui.ScreenGui.Action.Wrapper:FindFirstChild(player.UserId).Health.Text = _health .. "H"
+    PlayerGui.ScreenGui.Action.Wrapper:FindFirstChild(player.UserId).Timer.Bar.Transparency = 1
+
+    local labelText = action.Type
+    if action.Type ~= "ALL IN" then
+        if action.Type == "BET" then
+            labelText = action.Type .. " " .. action.Amount .. "H"
+        end
+        if action.Type == "RAISE" then
+            labelText = action.Type .. " TO " .. action.Amount .. "H"
+        end
+    end
+    PlayerGui.ScreenGui.Action.Wrapper:FindFirstChild(player.UserId).Action.Text = labelText
+end)
+
+Events.Match.Turn.Betting.Timer.OnClientEvent:Connect(function(player, progression)
+    PlayerGui.ScreenGui.Action.Wrapper:FindFirstChild(player.UserId).Timer.Bar.Transparency = 0
+    PlayerGui.ScreenGui.Action.Wrapper:FindFirstChild(player.UserId).Timer.Bar.Size = UDim2.fromScale(progression, 1)
 end)
 
 Events.Match.Turn.Betting.Started.OnClientEvent:Connect(function()
@@ -261,5 +307,10 @@ Events.Match.Turn.Betting.Started.OnClientEvent:Connect(function()
         Amount = nil,
     }
 
-    buttonLayouts.Default()
+    buttonLayouts.DEFAULT()
+
+    for _, c in ipairs(PlayerGui.ScreenGui.Action.Wrapper:GetChildren()) do
+        if not c:IsA("Frame") then continue end
+        c.Action.Text = ""
+    end
 end)

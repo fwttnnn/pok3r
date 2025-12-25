@@ -136,7 +136,7 @@ function Table:Deal(player: Player?)
             local card: Card = self.Deck:Pop()
             self.Cards.Community:Push(card)
 
-            local inner = self.Table.Community.Line
+            local inner = self.Part.Community.Line
             local _blank = Cards.Blank:Clone()
             
             local nCards = #self.Cards.Community.Cards

@@ -98,6 +98,7 @@ for _, t in ipairs(workspace.Development.Tables:GetChildren()) do
             rings[player] = nil
             setModelTransparency(t.Dealer.Hands.Pointing, 1)
             setModelTransparency(t.Dealer.Hands.Resting, 0)
+            t.Dealer.Head.Dialog.Frame.Label.Text = ""
 
             anim:Stop()
             anim:Remove()
@@ -125,6 +126,7 @@ for _, t in ipairs(workspace.Development.Tables:GetChildren()) do
         rings = {}
         setModelTransparency(t.Dealer.Hands.Pointing, 1)
         setModelTransparency(t.Dealer.Hands.Resting, 0)
+        t.Dealer.Head.Dialog.Frame.Label.Text = ""
 
         for _, p in ipairs(players) do
             local humanoid = p.Character:FindFirstChild("Humanoid")
@@ -147,7 +149,7 @@ for _, t in ipairs(workspace.Development.Tables:GetChildren()) do
         -- NOTE: we start a new match from here
         --       branch off thread so the main thread won't be blocked by `match:Start()`
         task.spawn(function()
-            match = Match.new(players)
+            match = Match.new(players, t)
             Storages.Memory.Matches.Add(match)
 
             match:Start()
