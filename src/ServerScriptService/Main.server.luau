@@ -19,7 +19,7 @@ local Storages = {
 }
 
 Players.PlayerAdded:Connect(function(player)
-    Storages.Memory.Players.Load(player, true)
+    Storages.Memory.Players.Load(player)
 
     -- player.CharacterAdded:Connect(function(character)
     -- end)
